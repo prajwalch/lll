@@ -1,6 +1,6 @@
-use std::env;
-use std::fs::{DirEntry, File};
+use std::fs::DirEntry;
 use std::path::PathBuf;
+use std::{env, fs};
 
 use tiny_http::{Header, Request, Response, Server};
 
@@ -17,26 +17,37 @@ fn main() {
         .into_iter()
         .map(|entry| entry.unwrap())
         .collect::<Vec<DirEntry>>();
+    let index_page = get_index_page(&dirs);
 
-    start_server(&dirs);
+    start_server(index_page);
 }
 
-fn start_server(dirs: &[DirEntry]) {
+/// Returns a content of `index.html` file if given path contains it
+fn get_index_page(dirs: &[DirEntry]) -> Option<String> {
+    dirs.iter().find_map(|e| {
+        if e.file_name() == "index.html" {
+            Some(fs::read_to_string(e.path()).unwrap())
+        } else {
+            None
+        }
+    })
+}
+
+fn start_server(index_page: Option<String>) {
     let server = Server::http("127.0.0.1:8080").unwrap();
     println!("Listening at `http://{}`", server.server_addr());
 
     for request in server.incoming_requests() {
-        handle_request(request, dirs);
+        handle_request(request, index_page.clone());
     }
 }
 
-fn handle_request(request: Request, dirs: &[DirEntry]) {
+fn handle_request(request: Request, index_page: Option<String>) {
     println!("{:?}: {}", request.method(), request.url());
-    let index_file = get_index_file(dirs);
 
     if request.url() == "/" {
-        if let Some(index_file) = index_file {
-            let response = Response::from_file(index_file)
+        if let Some(index_page) = index_page {
+            let response = Response::from_string(index_page)
                 .with_header(Header::from_bytes("Content-Type", "text/html").unwrap());
             request.respond(response).unwrap();
             return;
@@ -45,15 +56,4 @@ fn handle_request(request: Request, dirs: &[DirEntry]) {
 
     let response = Response::from_string("Custom index.html file");
     request.respond(response).unwrap();
-}
-
-/// Returns a `index.html` file if given path contains
-fn get_index_file(dirs: &[DirEntry]) -> Option<File> {
-    dirs.iter().find_map(|e| {
-        if e.file_name() == "index.html" {
-            Some(File::open(e.path()).unwrap())
-        } else {
-            None
-        }
-    })
 }
