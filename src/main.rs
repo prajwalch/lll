@@ -5,7 +5,7 @@ use std::{env, fs};
 use tiny_http::{Header, Request, Response, Server};
 
 fn main() {
-    let path = env::args().nth(1).unwrap_or({
+    let path = env::args().nth(1).unwrap_or_else(|| {
         eprintln!("Path is not provided, serving current directory");
         String::from(".")
     });
