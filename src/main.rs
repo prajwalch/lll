@@ -1,3 +1,6 @@
 fn main() {
-    println!("Hello, world!");
+    let path = env::args().nth(1).unwrap_or({
+        eprintln!("Path is not provided, serving current directory");
+        String::from(".")
+    });
 }
