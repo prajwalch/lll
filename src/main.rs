@@ -35,20 +35,18 @@ fn main() {
 fn build_urls_map(path: &Path) -> UrlsMap {
     let mut urls_map = HashMap::new();
 
-    path.read_dir()
-        .unwrap()
-        .into_iter()
-        .map(|entry| entry.unwrap())
-        .for_each(|dir_entry| {
-            if dir_entry.file_name() == "index.html" {
-                urls_map.insert(String::from("/"), UrlData::new(dir_entry.path(), None));
-                return;
-            }
-            urls_map.insert(
-                format!("/{}", dir_entry.file_name().to_str().unwrap()),
-                UrlData::new(dir_entry.path(), None),
-            );
-        });
+    path.read_dir().unwrap().into_iter().for_each(|dir_entry| {
+        let dir_entry = dir_entry.unwrap();
+
+        if dir_entry.file_name() == "index.html" {
+            urls_map.insert(String::from("/"), UrlData::new(dir_entry.path(), None));
+            return;
+        }
+        urls_map.insert(
+            format!("/{}", dir_entry.file_name().to_str().unwrap()),
+            UrlData::new(dir_entry.path(), None),
+        );
+    });
 
     urls_map
 }
