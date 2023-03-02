@@ -1,9 +1,24 @@
 use std::collections::HashMap;
 use std::env;
-use std::fs::File;
+use std::fs;
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 use tiny_http::{Header, Request, Response, Server};
+
+type UrlsMap = HashMap<String, UrlData>;
+
+struct UrlData {
+    fs_path: PathBuf,
+    pre_rendered_page: Option<String>,
+}
+
+impl UrlData {
+    #[rustfmt::skip]
+    pub fn new(fs_path: PathBuf, pre_rendered_page: Option<String>) -> Self {
+        Self { fs_path, pre_rendered_page }
+    }
+}
 
 fn main() {
     let path = env::args().nth(1).unwrap_or_else(|| {
@@ -12,12 +27,12 @@ fn main() {
     });
     let path = PathBuf::from(path);
     debug_assert!(path.is_dir());
-    let urls_map = build_urls_map(path.as_path());
+    let mut urls_map = build_urls_map(path.as_path());
 
-    start_server(&urls_map);
+    start_server(&mut urls_map);
 }
 
-fn build_urls_map(path: &Path) -> HashMap<String, PathBuf> {
+fn build_urls_map(path: &Path) -> UrlsMap {
     let mut urls_map = HashMap::new();
 
     path.read_dir()
@@ -26,19 +41,19 @@ fn build_urls_map(path: &Path) -> HashMap<String, PathBuf> {
         .map(|entry| entry.unwrap())
         .for_each(|dir_entry| {
             if dir_entry.file_name() == "index.html" {
-                urls_map.insert(String::from("/"), dir_entry.path());
+                urls_map.insert(String::from("/"), UrlData::new(dir_entry.path(), None));
                 return;
             }
             urls_map.insert(
                 format!("/{}", dir_entry.file_name().to_str().unwrap()),
-                dir_entry.path(),
+                UrlData::new(dir_entry.path(), None),
             );
         });
 
     urls_map
 }
 
-fn start_server(urls_map: &HashMap<String, PathBuf>) {
+fn start_server(urls_map: &mut UrlsMap) {
     let server = Server::http("127.0.0.1:8080").unwrap();
     println!("Listening at `http://{}`", server.server_addr());
 
@@ -47,17 +62,31 @@ fn start_server(urls_map: &HashMap<String, PathBuf>) {
     }
 }
 
-fn handle_request(request: Request, urls_map: &HashMap<String, PathBuf>) {
+fn handle_request(request: Request, urls_map: &mut UrlsMap) {
     println!("{:?}: {}", request.method(), request.url());
 
-    if let Some(url_path) = urls_map.get(request.url()) {
-        let response = Response::from_file(File::open(url_path.as_path()).unwrap());
-        request.respond(response).unwrap();
+    let url_data = match urls_map.get_mut(request.url()) {
+        Some(data) => data,
+        None => {
+            let response = Response::from_string("<h1>404 Not Found</h1>")
+                .with_header(Header::from_str("Content-Type: text/html").unwrap())
+                .with_status_code(404);
+            request.respond(response).unwrap();
+            return;
+        }
+    };
+
+    if let Some(ref pre_rendered_page) = url_data.pre_rendered_page {
+        let res = Response::from_string(pre_rendered_page)
+            .with_header(Header::from_str("Content-Type: text/html").unwrap());
+        request.respond(res).unwrap();
         return;
     }
 
-    let response = Response::from_string("<h1>404 Not Found</h1>")
-        .with_header(Header::from_bytes("Content-Type", "text/html").unwrap())
-        .with_status_code(404);
-    request.respond(response).unwrap();
+    if url_data.fs_path.is_dir() {
+        todo!("Dir url handling")
+    }
+    let content = fs::read_to_string(url_data.fs_path.as_path()).unwrap();
+    request.respond(Response::from_string(&content)).unwrap();
+    url_data.pre_rendered_page = Some(content);
 }
