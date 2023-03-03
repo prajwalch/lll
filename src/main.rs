@@ -154,20 +154,20 @@ impl ServerConfig {
 
 struct UrlEntry {
     fs_path: PathBuf,
-    pre_rendered_page: Option<String>,
-    mime_type: Option<String>,
+    cached_content: Option<String>,
+    content_type: Option<String>,
 }
 
 impl UrlEntry {
     pub fn new(
         fs_path: PathBuf,
-        pre_rendered_page: Option<String>,
-        mime_type: Option<String>,
+        cached_content: Option<String>,
+        content_type: Option<String>,
     ) -> Self {
         Self {
             fs_path,
-            pre_rendered_page,
-            mime_type,
+            cached_content,
+            content_type,
         }
     }
 }
@@ -208,12 +208,11 @@ fn handle_request(request: Request, server_config: &mut ServerConfig) {
         }
     };
 
-    // Respond the cached page
-    if let (Some(pre_rendered_page), Some(mime_type)) =
-        (&old_url_entry.pre_rendered_page, &old_url_entry.mime_type)
+    if let (Some(cached_content), Some(content_type)) =
+        (&old_url_entry.cached_content, &old_url_entry.content_type)
     {
-        let res = Response::from_string(pre_rendered_page)
-            .with_header(Header::from_str(mime_type).unwrap());
+        let res = Response::from_string(cached_content)
+            .with_header(Header::from_str(content_type).unwrap());
         request.respond(res).unwrap();
         return;
     }
@@ -223,23 +222,25 @@ fn handle_request(request: Request, server_config: &mut ServerConfig) {
     }
 
     let content = fs::read_to_string(old_url_entry.fs_path.as_path()).unwrap();
-    let mime_type = server_config.get_content_type(
+    let content_type = server_config.get_content_type(
         old_url_entry
             .fs_path
             .extension()
             .unwrap_or("default".as_ref()),
     );
-
     request
-        .respond(Response::from_string(&content).with_header(Header::from_str(&mime_type).unwrap()))
+        .respond(
+            Response::from_string(&content).with_header(Header::from_str(&content_type).unwrap()),
+        )
         .unwrap();
-    // Update the url entry with pre rendered page and its MIME type
+
+    // Update the url entry with content and its type
     server_config.urls_map.insert(
         requested_url,
         UrlEntry::new(
             old_url_entry.fs_path.clone(), // FIXME: Find a way to avoid cloning here
             Some(content),
-            Some(mime_type),
+            Some(content_type),
         ),
     );
 }
