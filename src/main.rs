@@ -137,7 +137,7 @@ impl ServerConfig {
         mime_types
     }
 
-    pub fn get_mime_type<E>(&self, file_extension: E) -> String
+    pub fn get_content_type<E>(&self, file_extension: E) -> String
     where
         E: AsRef<OsStr>,
     {
@@ -201,7 +201,7 @@ fn handle_request(request: Request, server_config: &mut ServerConfig) {
         Some(entry) => entry,
         None => {
             let response = Response::from_string("<h1>404 Not Found</h1>")
-                .with_header(Header::from_str(&server_config.get_mime_type("html")).unwrap())
+                .with_header(Header::from_str(&server_config.get_content_type("html")).unwrap())
                 .with_status_code(404);
             request.respond(response).unwrap();
             return;
@@ -223,7 +223,7 @@ fn handle_request(request: Request, server_config: &mut ServerConfig) {
     }
 
     let content = fs::read_to_string(old_url_entry.fs_path.as_path()).unwrap();
-    let mime_type = server_config.get_mime_type(
+    let mime_type = server_config.get_content_type(
         old_url_entry
             .fs_path
             .extension()
