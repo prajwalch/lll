@@ -6,14 +6,14 @@ use std::str::FromStr;
 
 use tiny_http::{Header, Request, Response, Server};
 
-type UrlsMap = HashMap<String, UrlData>;
+type UrlsMap = HashMap<String, UrlEntry>;
 
-struct UrlData {
+struct UrlEntry {
     fs_path: PathBuf,
     pre_rendered_page: Option<String>,
 }
 
-impl UrlData {
+impl UrlEntry {
     #[rustfmt::skip]
     pub fn new(fs_path: PathBuf, pre_rendered_page: Option<String>) -> Self {
         Self { fs_path, pre_rendered_page }
@@ -39,12 +39,12 @@ fn build_urls_map(path: &Path) -> UrlsMap {
         let dir_entry = dir_entry.unwrap();
 
         if dir_entry.file_name() == "index.html" {
-            urls_map.insert(String::from("/"), UrlData::new(dir_entry.path(), None));
+            urls_map.insert(String::from("/"), UrlEntry::new(dir_entry.path(), None));
             return;
         }
         urls_map.insert(
             format!("/{}", dir_entry.file_name().to_str().unwrap()),
-            UrlData::new(dir_entry.path(), None),
+            UrlEntry::new(dir_entry.path(), None),
         );
     });
 
@@ -63,8 +63,8 @@ fn start_server(urls_map: &mut UrlsMap) {
 fn handle_request(request: Request, urls_map: &mut UrlsMap) {
     println!("{:?}: {}", request.method(), request.url());
 
-    let url_data = match urls_map.get_mut(request.url()) {
-        Some(data) => data,
+    let url_entry = match urls_map.get_mut(request.url()) {
+        Some(entry) => entry,
         None => {
             let response = Response::from_string("<h1>404 Not Found</h1>")
                 .with_header(Header::from_str("Content-Type: text/html").unwrap())
@@ -74,17 +74,17 @@ fn handle_request(request: Request, urls_map: &mut UrlsMap) {
         }
     };
 
-    if let Some(ref pre_rendered_page) = url_data.pre_rendered_page {
+    if let Some(ref pre_rendered_page) = url_entry.pre_rendered_page {
         let res = Response::from_string(pre_rendered_page)
             .with_header(Header::from_str("Content-Type: text/html").unwrap());
         request.respond(res).unwrap();
         return;
     }
 
-    if url_data.fs_path.is_dir() {
+    if url_entry.fs_path.is_dir() {
         todo!("Dir url handling")
     }
-    let content = fs::read_to_string(url_data.fs_path.as_path()).unwrap();
+    let content = fs::read_to_string(url_entry.fs_path.as_path()).unwrap();
     request.respond(Response::from_string(&content)).unwrap();
-    url_data.pre_rendered_page = Some(content);
+    url_entry.pre_rendered_page = Some(content);
 }
