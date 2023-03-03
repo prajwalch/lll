@@ -159,9 +159,16 @@ struct UrlEntry {
 }
 
 impl UrlEntry {
-    #[rustfmt::skip]
-    pub fn new(fs_path: PathBuf, pre_rendered_page: Option<String>, mime_type: Option<String>) -> Self {
-        Self { fs_path, pre_rendered_page, mime_type }
+    pub fn new(
+        fs_path: PathBuf,
+        pre_rendered_page: Option<String>,
+        mime_type: Option<String>,
+    ) -> Self {
+        Self {
+            fs_path,
+            pre_rendered_page,
+            mime_type,
+        }
     }
 }
 
