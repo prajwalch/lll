@@ -15,9 +15,13 @@ fn main() {
         String::from(".")
     });
     let path = PathBuf::from(path);
-    debug_assert!(path.is_dir());
-    let mut config = Config::new(path.as_path());
 
+    if !path.is_dir() {
+        eprintln!("Please provide a directory to serve");
+        return;
+    }
+
+    let mut config = Config::new(path.as_path());
     if let Err(e) = start_server(&mut config) {
         eprintln!("Internal error: {e}");
     }
