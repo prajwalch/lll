@@ -5,7 +5,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use config::{ServerConfig, UrlEntry};
+use config::{Config, UrlEntry};
 use tiny_http::{Header, Request, Response, Server};
 
 fn main() {
@@ -15,29 +15,29 @@ fn main() {
     });
     let path = PathBuf::from(path);
     debug_assert!(path.is_dir());
-    let mut server_config = ServerConfig::new(path.as_path());
+    let mut config = Config::new(path.as_path());
 
-    start_server(&mut server_config);
+    start_server(&mut config);
 }
 
-fn start_server(server_config: &mut ServerConfig) {
+fn start_server(config: &mut Config) {
     let server = Server::http("127.0.0.1:8080").unwrap();
     println!("Listening at `http://{}`", server.server_addr());
 
     for request in server.incoming_requests() {
-        handle_request(request, server_config);
+        handle_request(request, config);
     }
 }
 
-fn handle_request(request: Request, server_config: &mut ServerConfig) {
+fn handle_request(request: Request, config: &mut Config) {
     println!("{:?}: {}", request.method(), request.url());
 
     let requested_url = request.url().to_string();
-    let old_url_entry = match server_config.urls_map.get(&requested_url) {
+    let old_url_entry = match config.urls_map.get(&requested_url) {
         Some(entry) => entry,
         None => {
             let response = Response::from_string("<h1>404 Not Found</h1>")
-                .with_header(Header::from_str(&server_config.get_content_type("html")).unwrap())
+                .with_header(Header::from_str(&config.get_content_type("html")).unwrap())
                 .with_status_code(404);
             request.respond(response).unwrap();
             return;
@@ -58,7 +58,7 @@ fn handle_request(request: Request, server_config: &mut ServerConfig) {
     }
 
     let content = fs::read_to_string(old_url_entry.fs_path.as_path()).unwrap();
-    let content_type = server_config.get_content_type(
+    let content_type = config.get_content_type(
         old_url_entry
             .fs_path
             .extension()
@@ -71,7 +71,7 @@ fn handle_request(request: Request, server_config: &mut ServerConfig) {
         .unwrap();
 
     // Update the url entry with content and its type
-    server_config.urls_map.insert(
+    config.urls_map.insert(
         requested_url,
         UrlEntry::new(
             old_url_entry.fs_path.clone(), // FIXME: Find a way to avoid cloning here

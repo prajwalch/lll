@@ -24,12 +24,12 @@ impl UrlEntry {
     }
 }
 
-pub struct ServerConfig {
+pub struct Config {
     pub urls_map: UrlsMap,
     pub mime_types: HashMap<&'static str, &'static str>,
 }
 
-impl ServerConfig {
+impl Config {
     pub fn new(path_to_serve: &Path) -> Self {
         Self {
             urls_map: Self::build_urls_map(path_to_serve),
