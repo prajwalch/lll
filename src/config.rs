@@ -3,6 +3,7 @@ use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
 type UrlsMap = HashMap<String, UrlEntry>;
+type MimeTypes = HashMap<&'static str, &'static str>;
 
 pub const PAGE_TEMPLATE: &str = r#"
 <!DOCTYPE html>
@@ -51,7 +52,7 @@ impl UrlEntry {
 
 pub struct Config {
     pub urls_map: UrlsMap,
-    pub mime_types: HashMap<&'static str, &'static str>,
+    pub mime_types: MimeTypes,
 }
 
 impl Config {
@@ -114,7 +115,7 @@ impl Config {
         urls_map
     }
 
-    fn build_mime_types() -> HashMap<&'static str, &'static str> {
+    fn build_mime_types() -> MimeTypes {
         let mut mime_types = HashMap::new();
 
         mime_types.insert("default", "application/octet-stream");
