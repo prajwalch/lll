@@ -2,6 +2,7 @@ mod config;
 
 use std::env;
 use std::fs;
+use std::io::Error as IoError;
 use std::path::PathBuf;
 use std::str::FromStr;
 
@@ -17,19 +18,23 @@ fn main() {
     debug_assert!(path.is_dir());
     let mut config = Config::new(path.as_path());
 
-    start_server(&mut config);
+    if let Err(e) = start_server(&mut config) {
+        eprintln!("Internal error: {e}");
+    }
 }
 
-fn start_server(config: &mut Config) {
+fn start_server(config: &mut Config) -> Result<(), IoError> {
+    // TODO: Combine the error returned by this with IoError and return it too
     let server = Server::http("127.0.0.1:8080").unwrap();
     println!("Listening at `http://{}`", server.server_addr());
 
     for request in server.incoming_requests() {
-        handle_request(request, config);
+        handle_request(request, config)?;
     }
+    Ok(())
 }
 
-fn handle_request(request: Request, config: &mut Config) {
+fn handle_request(request: Request, config: &mut Config) -> Result<(), IoError> {
     println!("{:?}: {}", request.method(), request.url());
 
     let requested_url = request.url().to_string();
@@ -39,8 +44,7 @@ fn handle_request(request: Request, config: &mut Config) {
             let response = Response::from_string("<h1>404 Not Found</h1>")
                 .with_header(Header::from_str(&config.get_content_type("html")).unwrap())
                 .with_status_code(404);
-            request.respond(response).unwrap();
-            return;
+            return request.respond(response);
         }
     };
 
@@ -49,26 +53,23 @@ fn handle_request(request: Request, config: &mut Config) {
     {
         let res = Response::from_string(cached_content)
             .with_header(Header::from_str(content_type).unwrap());
-        request.respond(res).unwrap();
-        return;
+        return request.respond(res);
     }
 
     if old_url_entry.fs_path.is_dir() {
         todo!("Dir url handling")
     }
 
-    let content = fs::read_to_string(old_url_entry.fs_path.as_path()).unwrap();
+    let content = fs::read_to_string(old_url_entry.fs_path.as_path())?;
     let content_type = config.get_content_type(
         old_url_entry
             .fs_path
             .extension()
             .unwrap_or("default".as_ref()),
     );
-    request
-        .respond(
-            Response::from_string(&content).with_header(Header::from_str(&content_type).unwrap()),
-        )
-        .unwrap();
+    request.respond(
+        Response::from_string(&content).with_header(Header::from_str(&content_type).unwrap()),
+    )?;
 
     // Update the url entry with content and its type
     config.urls_map.insert(
@@ -79,4 +80,5 @@ fn handle_request(request: Request, config: &mut Config) {
             Some(content_type),
         ),
     );
+    Ok(())
 }
