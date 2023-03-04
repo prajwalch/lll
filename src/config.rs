@@ -55,9 +55,9 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(path_to_serve: &Path) -> Self {
+    pub fn new(root_path: &Path) -> Self {
         let mut config = Self {
-            urls_map: Self::build_urls_map(path_to_serve),
+            urls_map: Self::build_urls_map(root_path),
             mime_types: Self::build_mime_types(),
         };
 
