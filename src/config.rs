@@ -157,7 +157,8 @@ impl Config {
         E: AsRef<OsStr>,
     {
         let file_extension = file_extension.as_ref();
-        let default_mime_type = self.mime_types.get("default").unwrap().to_string();
+        let default_mime_type =
+            format!("Content-Type: {}", self.mime_types.get("default").unwrap());
 
         self.mime_types
             .get(file_extension.to_str().unwrap())
