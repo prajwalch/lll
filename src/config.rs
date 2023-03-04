@@ -75,6 +75,23 @@ impl Config {
         config
     }
 
+    pub fn get_content_type<E>(&self, file_extension: E) -> String
+    where
+        E: AsRef<OsStr>,
+    {
+        let file_extension = file_extension.as_ref();
+        let default_mime_type =
+            format!("Content-Type: {}", self.mime_types.get("default").unwrap());
+
+        self.mime_types
+            .get(file_extension.to_str().unwrap())
+            .map_or(default_mime_type, |mime_type| {
+                format!("Content-Type: {}", mime_type)
+            })
+    }
+}
+
+impl Config {
     fn build_urls_map(path: &Path) -> UrlsMap {
         let mut urls_map = HashMap::new();
 
@@ -188,21 +205,6 @@ impl Config {
         mime_types.insert("7z", "application/x-7z-compressed");
 
         mime_types
-    }
-
-    pub fn get_content_type<E>(&self, file_extension: E) -> String
-    where
-        E: AsRef<OsStr>,
-    {
-        let file_extension = file_extension.as_ref();
-        let default_mime_type =
-            format!("Content-Type: {}", self.mime_types.get("default").unwrap());
-
-        self.mime_types
-            .get(file_extension.to_str().unwrap())
-            .map_or(default_mime_type, |mime_type| {
-                format!("Content-Type: {}", mime_type)
-            })
     }
 
     fn build_file_listing_page(urls_map: &UrlsMap) -> String {
