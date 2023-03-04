@@ -4,6 +4,31 @@ use std::path::{Path, PathBuf};
 
 type UrlsMap = HashMap<String, UrlEntry>;
 
+pub const PAGE_TEMPLATE: &str = r#"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title}</title>
+    <style>
+        body {
+            background-color: #0a0a0a;
+            color: #f5f5f5;
+        }
+
+        a {
+            color: #948bff;
+        }
+    </style>
+</head>
+<body>
+    {content}
+</body>
+</html>
+"#;
+
 pub struct UrlEntry {
     pub fs_path: PathBuf,
     pub cached_content: Option<String>,
@@ -31,10 +56,23 @@ pub struct Config {
 
 impl Config {
     pub fn new(path_to_serve: &Path) -> Self {
-        Self {
+        let mut config = Self {
             urls_map: Self::build_urls_map(path_to_serve),
             mime_types: Self::build_mime_types(),
-        }
+        };
+
+        // If root path not contains `index.html` build a file listing page
+        if !config.urls_map.contains_key("/") {
+            config.urls_map.insert(
+                String::from("/"),
+                UrlEntry::new(
+                    PathBuf::new(),
+                    Some(Self::build_file_listing_page(&config.urls_map)),
+                    Some(config.get_content_type("html")),
+                ),
+            );
+        };
+        config
     }
 
     fn build_urls_map(path: &Path) -> UrlsMap {
@@ -165,5 +203,19 @@ impl Config {
             .map_or(default_mime_type, |mime_type| {
                 format!("Content-Type: {}", mime_type)
             })
+    }
+
+    fn build_file_listing_page(urls_map: &UrlsMap) -> String {
+        let file_list_urls = urls_map
+            .iter()
+            .map(|(url, _)| format!(r#"<a href="{}">{}</a><br>"#, url, url))
+            .collect::<String>();
+
+        let mut content = String::from("<h1>File Listing</h1><br>");
+        content.push_str(&file_list_urls);
+
+        PAGE_TEMPLATE
+            .replace("{title}", "File Listing")
+            .replace("{content}", &content)
     }
 }
