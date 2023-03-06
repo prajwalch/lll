@@ -83,7 +83,7 @@ impl<'a> Config<'a> {
         path.read_dir().unwrap().into_iter().for_each(|dir_entry| {
             let dir_entry = dir_entry.unwrap();
             let entry_fs_path = dir_entry.path();
-            let mapped_url = Self::fs_path_to_url(self.root_path, &entry_fs_path);
+            let mapped_url = self.fs_path_to_url(&entry_fs_path);
             dbg!(&mapped_url);
 
             self.urls_map
@@ -220,8 +220,8 @@ impl Config<'_> {
     // /root/foo/index.html -> /foo
     // /root/foo/a.rs -> /foo/a.rs
     // /root/foo/bar -> /foo/bar
-    fn fs_path_to_url(root_path: &Path, fs_path: &Path) -> String {
-        dbg!(root_path, fs_path);
+    fn fs_path_to_url(&self, fs_path: &Path) -> String {
+        dbg!(self.root_path, fs_path);
 
         let parent = if let Some(parent) = fs_path.parent() {
             if parent == Path::new("") {
@@ -233,7 +233,7 @@ impl Config<'_> {
             return String::from("/");
         };
 
-        let is_root_path = parent == root_path;
+        let is_root_path = parent == self.root_path;
         let basename = if let Some(name) = fs_path.file_name() {
             name.to_str().expect("OsStr should convert into &str")
         } else {
@@ -251,7 +251,7 @@ impl Config<'_> {
         let parent = fs_path
             .parent()
             .unwrap()
-            .strip_prefix(root_path)
+            .strip_prefix(self.root_path)
             .unwrap()
             .to_str()
             .expect("fs_path's parent should able to convert into &str");
