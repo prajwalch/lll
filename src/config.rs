@@ -71,7 +71,7 @@ impl<'a> Config<'a> {
                 String::from("/"),
                 UrlEntry::new(
                     PathBuf::new(),
-                    Some(Self::build_file_listing_page(&config.urls_map)),
+                    Some(config.build_file_listing_page()),
                     Some(config.get_content_type("html")),
                 ),
             );
@@ -201,8 +201,9 @@ impl Config<'_> {
         mime_types
     }
 
-    fn build_file_listing_page(urls_map: &UrlsMap) -> String {
-        let file_list_urls = urls_map
+    fn build_file_listing_page(&self) -> String {
+        let file_list_urls = self
+            .urls_map
             .iter()
             .map(|(url, _)| format!(r#"<a href="{}">{}</a><br>"#, url, url))
             .collect::<String>();
