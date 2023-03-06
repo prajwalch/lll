@@ -98,7 +98,7 @@ impl<'a> Config<'a> {
         PAGE_TEMPLATE
             .replace("{title}", "Error Response")
             .replace("{content}", "<h1>404 Not Found</h1><p>Nothing matches the given URI</p>")
-}
+    }
 
     // /root/index.html -> /
     // /root/a.rs -> /a.rs
