@@ -281,6 +281,64 @@ impl Config<'_> {
             .replace("{content}", &content)
     }
 
+    // /root/index.html -> /
+    // /root/a.rs -> /a.rs
+    // /root/foo/index.html -> /foo
+    // /root/foo/a.rs -> /foo/a.rs
+    // /root/foo/bar -> /foo/bar
+    fn fs_path_to_url(root_path: &Path, fs_path: &Path) -> String {
+        dbg!(root_path, fs_path);
+
+        let parent = if let Some(parent) = fs_path.parent() {
+            if parent == Path::new("") {
+                Path::new(".")
+            } else {
+                parent
+            }
+        } else {
+            return String::from("/");
+        };
+
+        let is_root_path = parent == root_path;
+        let basename = if let Some(name) = fs_path.file_name() {
+            name.to_str().expect("OsStr should convert into &str")
+        } else {
+            return String::from("/");
+        };
+
+        // FIXME: Right now `/root/index.html` maps to `/` but requesting `/index.html` gives `not found error`
+        #[rustfmt::skip]
+        let basename = if basename == "index.html" { "" } else { basename };
+        dbg!(basename);
+
+        if is_root_path {
+            return format!("/{basename}");
+        }
+        let parent = fs_path
+            .parent()
+            .unwrap()
+            .strip_prefix(root_path)
+            .unwrap()
+            .to_str()
+            .expect("fs_path's parent should able to convert into &str");
+
+        format!("/{parent}/{basename}")
+    }
+
+    // / -> /root/index.html
+    // /a.rs -> /root/a.rs
+    // /foo -> /root/foo/index.html
+    // /foo/a.rs -> /root/foo/a.rs
+    // /foo/bar/index.js -> /root/foo/bar/index.js
+    fn url_to_fs_path(&self, requested_url: &str) -> PathBuf {
+        if let Some(url_entry) = self.urls_map.get(requested_url) {
+            return url_entry.fs_path.clone();
+        }
+        let root_path = self.root_path.to_path_buf();
+        root_path.join(requested_url.strip_prefix('/').unwrap())
+    }
+}
+
 #[rustfmt::skip]
 pub fn build_not_found_page() -> String {
     PAGE_TEMPLATE
