@@ -138,6 +138,20 @@ impl<'a> Config<'a> {
         format!("/{parent}/{basename}")
     }
 
+    // / -> /root/index.html
+    // /a.rs -> /root/a.rs
+    // /foo -> /root/foo/index.html
+    // /foo/a.rs -> /root/foo/a.rs
+    // /foo/bar/index.js -> /root/foo/bar/index.js
+    pub fn url_to_fs_path(&self, requested_url: &str) -> PathBuf {
+        if let Some(url_entry) = self.urls_map.get(requested_url) {
+            return url_entry.fs_path.clone();
+        }
+        let root_path = self.root_path.to_path_buf();
+        root_path.join(requested_url.strip_prefix('/').unwrap())
+    }
+}
+
 impl Config<'_> {
     fn build_urls_map(path: &Path) -> UrlsMap {
         let mut urls_map = HashMap::new();
