@@ -92,6 +92,12 @@ impl<'a> Config<'a> {
                 format!("Content-Type: {}", mime_type)
             })
     }
+
+    #[rustfmt::skip]
+    pub fn build_not_found_page(&self) -> String {
+        PAGE_TEMPLATE
+            .replace("{title}", "Error Response")
+            .replace("{content}", "<h1>404 Not Found</h1><p>Nothing matches the given URI</p>")
 }
 
     // /root/index.html -> /
