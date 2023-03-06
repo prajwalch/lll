@@ -60,9 +60,10 @@ impl<'a> Config<'a> {
     pub fn new(root_path: &'a Path) -> Self {
         let mut config = Self {
             root_path,
-            urls_map: Self::build_urls_map(root_path),
+            urls_map: UrlsMap::new(),
             mime_types: Self::build_mime_types(),
         };
+        config.build_urls_map(root_path);
 
         // If root path not contains `index.html` build a file listing page
         if !config.urls_map.contains_key("/") {
@@ -76,6 +77,18 @@ impl<'a> Config<'a> {
             );
         };
         config
+    }
+
+    pub fn build_urls_map(&mut self, path: &Path) {
+        path.read_dir().unwrap().into_iter().for_each(|dir_entry| {
+            let dir_entry = dir_entry.unwrap();
+            let entry_fs_path = dir_entry.path();
+            let mapped_url = Self::fs_path_to_url(self.root_path, &entry_fs_path);
+            dbg!(&mapped_url);
+
+            self.urls_map
+                .insert(mapped_url, UrlEntry::new(entry_fs_path, None, None));
+        });
     }
 
     pub fn get_content_type<E>(&self, file_extension: E) -> String
@@ -95,21 +108,6 @@ impl<'a> Config<'a> {
 }
 
 impl Config<'_> {
-    fn build_urls_map(path: &Path) -> UrlsMap {
-        let mut urls_map = HashMap::new();
-
-        path.read_dir().unwrap().into_iter().for_each(|dir_entry| {
-            let dir_entry = dir_entry.unwrap();
-            let fs_path = dir_entry.path();
-            let mapped_url = Self::fs_path_to_url(path, &fs_path);
-            dbg!(&mapped_url);
-
-            urls_map.insert(mapped_url, UrlEntry::new(fs_path, None, None));
-        });
-
-        urls_map
-    }
-
     fn build_mime_types() -> MimeTypes {
         let mut mime_types = HashMap::new();
 
