@@ -280,4 +280,10 @@ impl Config<'_> {
             .replace("{title}", "File Listing")
             .replace("{content}", &content)
     }
+
+#[rustfmt::skip]
+pub fn build_not_found_page() -> String {
+    PAGE_TEMPLATE
+        .replace("{title}", "Error Response")
+        .replace("{content}", "<h1>404 Not Found</h1><p>Nothing matches the given URI</p>")
 }
