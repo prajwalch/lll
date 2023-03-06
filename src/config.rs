@@ -204,8 +204,8 @@ impl Config<'_> {
     fn build_file_listing_page(&self) -> String {
         let file_list_urls = self
             .urls_map
-            .iter()
-            .map(|(url, _)| format!(r#"<a href="{}">{}</a><br>"#, url, url))
+            .keys()
+            .map(|url| format!(r#"<a href="{}">{}</a><br>"#, url, url))
             .collect::<String>();
 
         let mut content = String::from("<h1>File Listing</h1><br>");
