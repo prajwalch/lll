@@ -50,14 +50,16 @@ impl UrlEntry {
     }
 }
 
-pub struct Config {
+pub struct Config<'a> {
+    pub root_path: &'a Path,
     pub urls_map: UrlsMap,
     pub mime_types: MimeTypes,
 }
 
-impl Config {
-    pub fn new(root_path: &Path) -> Self {
+impl<'a> Config<'a> {
+    pub fn new(root_path: &'a Path) -> Self {
         let mut config = Self {
+            root_path,
             urls_map: Self::build_urls_map(root_path),
             mime_types: Self::build_mime_types(),
         };
@@ -92,24 +94,61 @@ impl Config {
     }
 }
 
-impl Config {
+    // /root/index.html -> /
+    // /root/a.rs -> /a.rs
+    // /root/foo/index.html -> /foo
+    // /root/foo/a.rs -> /foo/a.rs
+    // /root/foo/bar -> /foo/bar
+    pub fn fs_path_to_url(root_path: &Path, fs_path: &Path) -> String {
+        dbg!(root_path, fs_path);
+
+        let parent = if let Some(parent) = fs_path.parent() {
+            if parent == Path::new("") {
+                Path::new(".")
+            } else {
+                parent
+            }
+        } else {
+            return String::from("/");
+        };
+
+        let is_root_path = parent == root_path;
+        let basename = if let Some(name) = fs_path.file_name() {
+            name.to_str().expect("OsStr should convert into &str")
+        } else {
+            return String::from("/");
+        };
+
+        // FIXME: Right now `/root/index.html` maps to `/` but requesting `/index.html` gives `not found error`
+        #[rustfmt::skip]
+        let basename = if basename == "index.html" { "" } else { basename };
+        dbg!(basename);
+
+        if is_root_path {
+            return format!("/{basename}");
+        }
+        let parent = fs_path
+            .parent()
+            .unwrap()
+            .strip_prefix(root_path)
+            .unwrap()
+            .to_str()
+            .expect("fs_path's parent should able to convert into &str");
+
+        format!("/{parent}/{basename}")
+    }
+
+impl Config<'_> {
     fn build_urls_map(path: &Path) -> UrlsMap {
         let mut urls_map = HashMap::new();
 
         path.read_dir().unwrap().into_iter().for_each(|dir_entry| {
             let dir_entry = dir_entry.unwrap();
+            let fs_path = dir_entry.path();
+            let mapped_url = Self::fs_path_to_url(path, &fs_path);
+            dbg!(&mapped_url);
 
-            if dir_entry.file_name() == "index.html" {
-                urls_map.insert(
-                    String::from("/"),
-                    UrlEntry::new(dir_entry.path(), None, None),
-                );
-                return;
-            }
-            urls_map.insert(
-                format!("/{}", dir_entry.file_name().to_str().unwrap()),
-                UrlEntry::new(dir_entry.path(), None, None),
-            );
+            urls_map.insert(mapped_url, UrlEntry::new(fs_path, None, None));
         });
 
         urls_map
