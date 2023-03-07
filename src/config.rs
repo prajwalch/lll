@@ -229,7 +229,7 @@ impl Config<'_> {
             return String::from("/");
         };
 
-        let is_root_path = parent == self.root_path || fs_path == self.root_path;
+        let is_root_path = (parent == self.root_path) || (fs_path == self.root_path);
         let basename = if let Some(name) = fs_path.file_name() {
             name.to_str().expect("OsStr should convert into &str")
         } else {
