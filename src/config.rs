@@ -216,11 +216,6 @@ impl Config<'_> {
             .replace("{content}", &content)
     }
 
-    // /root/index.html -> /
-    // /root/a.rs -> /a.rs
-    // /root/foo/index.html -> /foo
-    // /root/foo/a.rs -> /foo/a.rs
-    // /root/foo/bar -> /foo/bar
     fn fs_path_to_url(&self, fs_path: &Path) -> String {
         dbg!(self.root_path, fs_path);
 
@@ -262,11 +257,6 @@ impl Config<'_> {
         format!("/{parent}/{basename}")
     }
 
-    // / -> /root/index.html
-    // /a.rs -> /root/a.rs
-    // /foo -> /root/foo/index.html
-    // /foo/a.rs -> /root/foo/a.rs
-    // /foo/bar/index.js -> /root/foo/bar/index.js
     fn url_to_fs_path(&self, requested_url: &str) -> PathBuf {
         if let Some(url_entry) = self.urls_map.get(requested_url) {
             return url_entry.fs_path.clone();
