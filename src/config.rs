@@ -257,6 +257,9 @@ impl Config<'_> {
             .to_str()
             .expect("fs_path's parent should able to convert into &str");
 
+        if basename.is_empty() {
+            return format!("/{parent}");
+        }
         format!("/{parent}/{basename}")
     }
 
