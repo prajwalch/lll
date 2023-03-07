@@ -244,7 +244,6 @@ impl Config<'_> {
         // FIXME: Right now `/root/index.html` maps to `/` but requesting `/index.html` gives `not found error`
         #[rustfmt::skip]
         let basename = if basename == "index.html" { "" } else { basename };
-        dbg!(basename);
 
         if is_root_path {
             return format!("/{basename}");
