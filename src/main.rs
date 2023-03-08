@@ -42,8 +42,9 @@ fn handle_request(request: Request, config: &mut Config) -> Result<(), IoError> 
     println!("{:?}: {}", request.method(), request.url());
 
     let requested_url = normalize_url(request.url());
-    let old_url_entry = match config.urls_map.get(&requested_url) {
-        Some(entry) => entry,
+    dbg!(&requested_url);
+    let old_url_entry = match config.get_url_entry(&requested_url) {
+        Some(entry) => entry.clone(), // TODO: Avoid cloning here if possible
         None => {
             let response = Response::from_string(config::build_not_found_page())
                 .with_header(Header::from_str(&config.get_content_type("html")).unwrap())
@@ -74,11 +75,7 @@ fn handle_request(request: Request, config: &mut Config) -> Result<(), IoError> 
     // Update the url entry with content and its type
     config.urls_map.insert(
         requested_url,
-        UrlEntry::new(
-            old_url_entry.fs_path.clone(), // FIXME: Find a way to avoid cloning here
-            Some(content),
-            Some(content_type),
-        ),
+        UrlEntry::new(old_url_entry.fs_path, Some(content), Some(content_type)),
     );
     Ok(())
 }

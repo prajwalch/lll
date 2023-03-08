@@ -94,6 +94,11 @@ impl<'a> Config<'a> {
                 format!("Content-Type: {}", mime_type)
             })
     }
+
+    pub fn get_url_entry(&mut self, requested_url: &str) -> Option<&UrlEntry> {
+        self.rebuild_urls_map(requested_url);
+        self.urls_map.get(requested_url)
+    }
 }
 
 impl Config<'_> {
@@ -265,6 +270,36 @@ impl Config<'_> {
         }
         let root_path = self.root_path.to_path_buf();
         root_path.join(requested_url.strip_prefix('/').unwrap())
+    }
+
+    fn rebuild_urls_map(&mut self, requested_url: &str) {
+        let mut fs_path: Option<PathBuf> = None;
+
+        if let Some(url_entry) = self.urls_map.get(requested_url) {
+            if url_entry.fs_path.is_dir() {
+                fs_path = Some(url_entry.fs_path.clone());
+                self.urls_map.remove(requested_url);
+            } else {
+                return;
+            }
+        }
+        let fs_path = fs_path.unwrap_or(self.url_to_fs_path(requested_url));
+
+        if !fs_path.exists() {
+            return;
+        }
+        let parent = if fs_path.is_file() {
+            fs_path.parent().unwrap().to_path_buf()
+        } else {
+            fs_path
+        };
+
+        for ancestor in parent.ancestors() {
+            if ancestor == self.root_path {
+                break;
+            }
+            self.build_urls_map(ancestor);
+        }
     }
 }
 
