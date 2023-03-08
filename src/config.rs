@@ -183,6 +183,43 @@ impl Config<'_> {
         mime_types
     }
 
+    fn rebuild_urls_map(&mut self, requested_url: &str) {
+        let mut fs_path: Option<PathBuf> = None;
+
+        if let Some(url_entry) = self.urls_map.get(requested_url) {
+            if url_entry.cached_content.is_some() || url_entry.fs_path.is_file() {
+                return;
+            }
+            fs_path = Some(url_entry.fs_path.clone());
+            self.urls_map.remove(requested_url);
+        }
+        let fs_path = fs_path.unwrap_or(self.url_to_fs_path(requested_url));
+
+        if !fs_path.exists() {
+            return;
+        }
+        let parent = if fs_path.is_file() {
+            fs_path.parent().unwrap().to_path_buf()
+        } else {
+            fs_path
+        };
+
+        for ancestor in parent.ancestors() {
+            if ancestor == self.root_path {
+                break;
+            }
+            self.build_urls_map(ancestor);
+        }
+    }
+
+    fn url_to_fs_path(&self, requested_url: &str) -> PathBuf {
+        if let Some(url_entry) = self.urls_map.get(requested_url) {
+            return url_entry.fs_path.clone();
+        }
+        let root_path = self.root_path.to_path_buf();
+        root_path.join(requested_url.strip_prefix('/').unwrap())
+    }
+
     fn build_urls_map(&mut self, path: &Path) {
         path.read_dir().unwrap().into_iter().for_each(|dir_entry| {
             let dir_entry = dir_entry.unwrap();
@@ -208,31 +245,6 @@ impl Config<'_> {
                 Some(self.get_content_type("html")),
             ),
         );
-    }
-
-    fn generate_file_listing_page(&self, path: &Path) -> Vec<u8> {
-        let file_list_urls = self
-            .urls_map
-            .iter()
-            .filter_map(|(mapped_url, url_entry)| {
-                url_entry.fs_path.parent().and_then(|parent| {
-                    if parent == path {
-                        Some(mapped_url)
-                    } else {
-                        None
-                    }
-                })
-            })
-            .map(|url| format!(r#"<a href="{}">{}</a><br>"#, url, url))
-            .collect::<String>();
-
-        let mut content = String::from("<h1>File Listing</h1><br>");
-        content.push_str(&file_list_urls);
-
-        PAGE_TEMPLATE
-            .replace("{title}", "File Listing")
-            .replace("{content}", &content)
-            .into_bytes()
     }
 
     fn fs_path_to_url(&self, fs_path: &Path) -> String {
@@ -276,41 +288,29 @@ impl Config<'_> {
         format!("/{parent}/{basename}")
     }
 
-    fn url_to_fs_path(&self, requested_url: &str) -> PathBuf {
-        if let Some(url_entry) = self.urls_map.get(requested_url) {
-            return url_entry.fs_path.clone();
-        }
-        let root_path = self.root_path.to_path_buf();
-        root_path.join(requested_url.strip_prefix('/').unwrap())
-    }
+    fn generate_file_listing_page(&self, path: &Path) -> Vec<u8> {
+        let file_list_urls = self
+            .urls_map
+            .iter()
+            .filter_map(|(mapped_url, url_entry)| {
+                url_entry.fs_path.parent().and_then(|parent| {
+                    if parent == path {
+                        Some(mapped_url)
+                    } else {
+                        None
+                    }
+                })
+            })
+            .map(|url| format!(r#"<a href="{}">{}</a><br>"#, url, url))
+            .collect::<String>();
 
-    fn rebuild_urls_map(&mut self, requested_url: &str) {
-        let mut fs_path: Option<PathBuf> = None;
+        let mut content = String::from("<h1>File Listing</h1><br>");
+        content.push_str(&file_list_urls);
 
-        if let Some(url_entry) = self.urls_map.get(requested_url) {
-            if url_entry.cached_content.is_some() || url_entry.fs_path.is_file() {
-                return;
-            }
-            fs_path = Some(url_entry.fs_path.clone());
-            self.urls_map.remove(requested_url);
-        }
-        let fs_path = fs_path.unwrap_or(self.url_to_fs_path(requested_url));
-
-        if !fs_path.exists() {
-            return;
-        }
-        let parent = if fs_path.is_file() {
-            fs_path.parent().unwrap().to_path_buf()
-        } else {
-            fs_path
-        };
-
-        for ancestor in parent.ancestors() {
-            if ancestor == self.root_path {
-                break;
-            }
-            self.build_urls_map(ancestor);
-        }
+        PAGE_TEMPLATE
+            .replace("{title}", "File Listing")
+            .replace("{content}", &content)
+            .into_bytes()
     }
 }
 
