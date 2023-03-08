@@ -64,6 +64,7 @@ fn handle_request(request: Request, config: &mut Config) -> Result<(), IoError> 
     let content = fs::read(url_entry.fs_path.as_path())?;
     let content_type =
         config.get_content_type(url_entry.fs_path.extension().unwrap_or("default".as_ref()));
+
     request.respond(
         Response::from_data(content.clone()).with_header(Header::from_str(&content_type).unwrap()),
     )?;
