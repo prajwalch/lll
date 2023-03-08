@@ -183,70 +183,6 @@ impl Config<'_> {
         mime_types
     }
 
-    fn rebuild_urls_map(&mut self, requested_url: &str) {
-        let mut fs_path: Option<PathBuf> = None;
-
-        if let Some(url_entry) = self.urls_map.get(requested_url) {
-            if url_entry.cached_content.is_some() || url_entry.fs_path.is_file() {
-                return;
-            }
-            fs_path = Some(url_entry.fs_path.clone());
-            self.urls_map.remove(requested_url);
-        }
-        let fs_path = fs_path.unwrap_or(self.url_to_fs_path(requested_url));
-
-        if !fs_path.exists() {
-            return;
-        }
-        let parent = if fs_path.is_file() {
-            fs_path.parent().unwrap().to_path_buf()
-        } else {
-            fs_path
-        };
-
-        for ancestor in parent.ancestors() {
-            if ancestor == self.root_path {
-                break;
-            }
-            self.build_urls_map(ancestor);
-        }
-    }
-
-    fn url_to_fs_path(&self, requested_url: &str) -> PathBuf {
-        if let Some(url_entry) = self.urls_map.get(requested_url) {
-            return url_entry.fs_path.clone();
-        }
-        let root_path = self.root_path.to_path_buf();
-        root_path.join(requested_url.strip_prefix('/').unwrap())
-    }
-
-    fn build_urls_map(&mut self, path: &Path) {
-        path.read_dir().unwrap().into_iter().for_each(|dir_entry| {
-            let dir_entry = dir_entry.unwrap();
-            let entry_fs_path = dir_entry.path();
-            let mapped_url = self.fs_path_to_url(&entry_fs_path);
-            dbg!(&mapped_url);
-
-            self.urls_map
-                .entry(mapped_url)
-                .or_insert_with(|| UrlEntry::new(entry_fs_path, None, None));
-        });
-        let mapped_root_url = self.fs_path_to_url(path);
-
-        if self.urls_map.contains_key(&mapped_root_url) {
-            return;
-        }
-        // If path not contains `index.html` file build a file listing page for it
-        self.urls_map.insert(
-            mapped_root_url,
-            UrlEntry::new(
-                PathBuf::new(),
-                Some(self.generate_file_listing_page(path)),
-                Some(self.get_content_type("html")),
-            ),
-        );
-    }
-
     fn fs_path_to_url(&self, fs_path: &Path) -> String {
         dbg!(self.root_path, fs_path);
 
@@ -287,6 +223,36 @@ impl Config<'_> {
         }
         format!("/{parent}/{basename}")
     }
+}
+
+// Methods for `url_maps`
+impl Config<'_> {
+    fn build_urls_map(&mut self, path: &Path) {
+        path.read_dir().unwrap().into_iter().for_each(|dir_entry| {
+            let dir_entry = dir_entry.unwrap();
+            let entry_fs_path = dir_entry.path();
+            let mapped_url = self.fs_path_to_url(&entry_fs_path);
+            dbg!(&mapped_url);
+
+            self.urls_map
+                .entry(mapped_url)
+                .or_insert_with(|| UrlEntry::new(entry_fs_path, None, None));
+        });
+        let mapped_root_url = self.fs_path_to_url(path);
+
+        if self.urls_map.contains_key(&mapped_root_url) {
+            return;
+        }
+        // If path not contains `index.html` file build a file listing page for it
+        self.urls_map.insert(
+            mapped_root_url,
+            UrlEntry::new(
+                PathBuf::new(),
+                Some(self.generate_file_listing_page(path)),
+                Some(self.get_content_type("html")),
+            ),
+        );
+    }
 
     fn generate_file_listing_page(&self, path: &Path) -> Vec<u8> {
         let file_list_urls = self
@@ -311,6 +277,43 @@ impl Config<'_> {
             .replace("{title}", "File Listing")
             .replace("{content}", &content)
             .into_bytes()
+    }
+
+    fn rebuild_urls_map(&mut self, requested_url: &str) {
+        let mut fs_path: Option<PathBuf> = None;
+
+        if let Some(url_entry) = self.urls_map.get(requested_url) {
+            if url_entry.cached_content.is_some() || url_entry.fs_path.is_file() {
+                return;
+            }
+            fs_path = Some(url_entry.fs_path.clone());
+            self.urls_map.remove(requested_url);
+        }
+        let fs_path = fs_path.unwrap_or(self.url_to_fs_path(requested_url));
+
+        if !fs_path.exists() {
+            return;
+        }
+        let parent = if fs_path.is_file() {
+            fs_path.parent().unwrap().to_path_buf()
+        } else {
+            fs_path
+        };
+
+        for ancestor in parent.ancestors() {
+            if ancestor == self.root_path {
+                break;
+            }
+            self.build_urls_map(ancestor);
+        }
+    }
+
+    fn url_to_fs_path(&self, requested_url: &str) -> PathBuf {
+        if let Some(url_entry) = self.urls_map.get(requested_url) {
+            return url_entry.fs_path.clone();
+        }
+        let root_path = self.root_path.to_path_buf();
+        root_path.join(requested_url.strip_prefix('/').unwrap())
     }
 }
 
