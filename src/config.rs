@@ -68,6 +68,11 @@ impl<'a> Config<'a> {
         config
     }
 
+    pub fn get_url_entry(&mut self, requested_url: &str) -> Option<&UrlEntry> {
+        self.update_urls_map(requested_url);
+        self.urls_map.get(requested_url)
+    }
+
     pub fn get_content_type<E>(&self, file_extension: E) -> String
     where
         E: AsRef<OsStr>,
@@ -81,11 +86,6 @@ impl<'a> Config<'a> {
             .map_or(default_mime_type, |mime_type| {
                 format!("Content-Type: {mime_type}")
             })
-    }
-
-    pub fn get_url_entry(&mut self, requested_url: &str) -> Option<&UrlEntry> {
-        self.update_urls_map(requested_url);
-        self.urls_map.get(requested_url)
     }
 }
 
