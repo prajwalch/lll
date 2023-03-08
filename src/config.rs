@@ -276,9 +276,11 @@ impl Config<'_> {
         let mut fs_path: Option<PathBuf> = None;
 
         if let Some(url_entry) = self.urls_map.get(requested_url) {
-            if url_entry.fs_path.is_dir() {
-                fs_path = Some(url_entry.fs_path.clone());
-                self.urls_map.remove(requested_url);
+            if (url_entry.cached_content.is_some()) || (url_entry.fs_path.is_file()) {
+                return;
+            }
+            fs_path = Some(url_entry.fs_path.clone());
+            self.urls_map.remove(requested_url);
             } else {
                 return;
             }
