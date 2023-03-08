@@ -292,12 +292,12 @@ impl Config<'_> {
             fs_path
         };
 
-        for ancestor in parent.ancestors() {
+        parent.ancestors().for_each(|ancestor| {
             if ancestor == self.root_path {
-                break;
+                return;
             }
             self.build_urls_map(ancestor);
-        }
+        });
     }
 }
 
