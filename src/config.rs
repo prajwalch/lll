@@ -90,6 +90,33 @@ impl<'a> Config<'a> {
 }
 
 impl Config<'_> {
+    fn build_urls_map(&mut self, path: &Path) {
+        path.read_dir().unwrap().into_iter().for_each(|dir_entry| {
+            let dir_entry = dir_entry.unwrap();
+            let entry_fs_path = dir_entry.path();
+            let mapped_url = self.fs_path_to_url(&entry_fs_path);
+            dbg!(&mapped_url);
+
+            self.urls_map
+                .entry(mapped_url)
+                .or_insert_with(|| UrlEntry::new(entry_fs_path, None, None));
+        });
+        let mapped_root_url = self.fs_path_to_url(path);
+
+        if self.urls_map.contains_key(&mapped_root_url) {
+            return;
+        }
+        // If path not contains `index.html` file build a file listing page for it
+        self.urls_map.insert(
+            mapped_root_url,
+            UrlEntry::new(
+                PathBuf::new(),
+                Some(self.generate_file_listing_page(path)),
+                Some(self.get_content_type("html")),
+            ),
+        );
+    }
+
     fn fs_path_to_url(&self, fs_path: &Path) -> String {
         dbg!(self.root_path, fs_path);
 
@@ -129,36 +156,6 @@ impl Config<'_> {
             return format!("/{parent}");
         }
         format!("/{parent}/{basename}")
-    }
-}
-
-// Methods for `url_maps`
-impl Config<'_> {
-    fn build_urls_map(&mut self, path: &Path) {
-        path.read_dir().unwrap().into_iter().for_each(|dir_entry| {
-            let dir_entry = dir_entry.unwrap();
-            let entry_fs_path = dir_entry.path();
-            let mapped_url = self.fs_path_to_url(&entry_fs_path);
-            dbg!(&mapped_url);
-
-            self.urls_map
-                .entry(mapped_url)
-                .or_insert_with(|| UrlEntry::new(entry_fs_path, None, None));
-        });
-        let mapped_root_url = self.fs_path_to_url(path);
-
-        if self.urls_map.contains_key(&mapped_root_url) {
-            return;
-        }
-        // If path not contains `index.html` file build a file listing page for it
-        self.urls_map.insert(
-            mapped_root_url,
-            UrlEntry::new(
-                PathBuf::new(),
-                Some(self.generate_file_listing_page(path)),
-                Some(self.get_content_type("html")),
-            ),
-        );
     }
 
     fn generate_file_listing_page(&self, path: &Path) -> Vec<u8> {
