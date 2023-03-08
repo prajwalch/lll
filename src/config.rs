@@ -64,7 +64,7 @@ impl<'a> Config<'a> {
             urls_map: UrlsMap::new(),
             mime_types: build_mime_types(),
         };
-        config.build_urls_map(root_path);
+        config.map_urls_from(root_path);
         config
     }
 
@@ -90,7 +90,7 @@ impl<'a> Config<'a> {
 }
 
 impl Config<'_> {
-    fn build_urls_map(&mut self, path: &Path) {
+    fn map_urls_from(&mut self, path: &Path) {
         path.read_dir().unwrap().into_iter().for_each(|dir_entry| {
             let dir_entry = dir_entry.unwrap();
             let entry_fs_path = dir_entry.path();
@@ -208,7 +208,7 @@ impl Config<'_> {
             if ancestor == self.root_path {
                 break;
             }
-            self.build_urls_map(ancestor);
+            self.map_urls_from(ancestor);
         }
     }
 
