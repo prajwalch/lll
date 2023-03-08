@@ -65,18 +65,6 @@ impl<'a> Config<'a> {
             mime_types: Self::build_mime_types(),
         };
         config.build_urls_map(root_path);
-
-        // If root path not contains `index.html` build a file listing page
-        if !config.urls_map.contains_key("/") {
-            config.urls_map.insert(
-                String::from("/"),
-                UrlEntry::new(
-                    PathBuf::new(),
-                    Some(config.build_file_listing_page()),
-                    Some(config.get_content_type("html")),
-                ),
-            );
-        };
         config
     }
 
@@ -203,14 +191,38 @@ impl Config<'_> {
             dbg!(&mapped_url);
 
             self.urls_map
-                .insert(mapped_url, UrlEntry::new(entry_fs_path, None, None));
+                .entry(mapped_url)
+                .or_insert_with(|| UrlEntry::new(entry_fs_path, None, None));
         });
+        let mapped_root_url = self.fs_path_to_url(path);
+
+        if self.urls_map.contains_key(&mapped_root_url) {
+            return;
+        }
+        // If path not contains `index.html` file build a file listing page for it
+        self.urls_map.insert(
+            mapped_root_url,
+            UrlEntry::new(
+                PathBuf::new(),
+                Some(self.build_file_listing_page(path)),
+                Some(self.get_content_type("html")),
+            ),
+        );
     }
 
-    fn build_file_listing_page(&self) -> Vec<u8> {
+    fn build_file_listing_page(&self, path: &Path) -> Vec<u8> {
         let file_list_urls = self
             .urls_map
-            .keys()
+            .iter()
+            .filter_map(|(mapped_url, url_entry)| {
+                url_entry.fs_path.parent().and_then(|parent| {
+                    if parent == path {
+                        Some(mapped_url)
+                    } else {
+                        None
+                    }
+                })
+            })
             .map(|url| format!(r#"<a href="{}">{}</a><br>"#, url, url))
             .collect::<String>();
 
