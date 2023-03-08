@@ -51,7 +51,7 @@ impl UrlEntry {
 }
 
 pub struct Config<'a> {
-    pub root_path: &'a Path,
+    root_path: &'a Path,
     pub urls_map: UrlsMap,
     pub mime_types: MimeTypes,
 }
