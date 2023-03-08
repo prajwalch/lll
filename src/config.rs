@@ -281,9 +281,6 @@ impl Config<'_> {
             }
             fs_path = Some(url_entry.fs_path.clone());
             self.urls_map.remove(requested_url);
-            } else {
-                return;
-            }
         }
         let fs_path = fs_path.unwrap_or(self.url_to_fs_path(requested_url));
 
