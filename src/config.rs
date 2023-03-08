@@ -261,6 +261,7 @@ impl Config<'_> {
         if is_root_path {
             return format!("/{basename}");
         }
+        dbg!(fs_path, self.root_path);
         let parent = fs_path
             .parent()
             .unwrap()
@@ -304,12 +305,12 @@ impl Config<'_> {
             fs_path
         };
 
-        parent.ancestors().for_each(|ancestor| {
+        for ancestor in parent.ancestors() {
             if ancestor == self.root_path {
-                return;
+                break;
             }
             self.build_urls_map(ancestor);
-        });
+        }
     }
 }
 
