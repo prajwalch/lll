@@ -55,16 +55,12 @@ fn handle_request(request: Request, config: &mut Config) -> Result<(), IoError> 
     if let (Some(cached_content), Some(content_type)) =
         (&old_url_entry.cached_content, &old_url_entry.content_type)
     {
-        let res = Response::from_string(cached_content)
+        let res = Response::from_data(cached_content.to_owned())
             .with_header(Header::from_str(content_type).unwrap());
         return request.respond(res);
     }
 
-    if old_url_entry.fs_path.is_dir() {
-        todo!("Dir url handling")
-    }
-
-    let content = fs::read_to_string(old_url_entry.fs_path.as_path())?;
+    let content = fs::read(old_url_entry.fs_path.as_path())?;
     let content_type = config.get_content_type(
         old_url_entry
             .fs_path
@@ -72,7 +68,7 @@ fn handle_request(request: Request, config: &mut Config) -> Result<(), IoError> 
             .unwrap_or("default".as_ref()),
     );
     request.respond(
-        Response::from_string(&content).with_header(Header::from_str(&content_type).unwrap()),
+        Response::from_data(content.clone()).with_header(Header::from_str(&content_type).unwrap()),
     )?;
 
     // Update the url entry with content and its type

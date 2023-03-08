@@ -32,14 +32,14 @@ pub const PAGE_TEMPLATE: &str = r#"
 
 pub struct UrlEntry {
     pub fs_path: PathBuf,
-    pub cached_content: Option<String>,
+    pub cached_content: Option<Vec<u8>>,
     pub content_type: Option<String>,
 }
 
 impl UrlEntry {
     pub fn new(
         fs_path: PathBuf,
-        cached_content: Option<String>,
+        cached_content: Option<Vec<u8>>,
         content_type: Option<String>,
     ) -> Self {
         Self {
@@ -201,7 +201,7 @@ impl Config<'_> {
         mime_types
     }
 
-    fn build_file_listing_page(&self) -> String {
+    fn build_file_listing_page(&self) -> Vec<u8> {
         let file_list_urls = self
             .urls_map
             .keys()
@@ -214,6 +214,7 @@ impl Config<'_> {
         PAGE_TEMPLATE
             .replace("{title}", "File Listing")
             .replace("{content}", &content)
+            .into_bytes()
     }
 
     fn fs_path_to_url(&self, fs_path: &Path) -> String {
