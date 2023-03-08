@@ -79,7 +79,7 @@ impl<'a> Config<'a> {
         self.mime_types
             .get(file_extension.to_str().unwrap())
             .map_or(default_mime_type, |mime_type| {
-                format!("Content-Type: {}", mime_type)
+                format!("Content-Type: {mime_type}")
             })
     }
 
