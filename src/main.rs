@@ -88,11 +88,12 @@ fn handle_request(request: Request, config: &mut Config) -> Result<(), IoError> 
 }
 
 fn normalize_url(requested_url: &str) -> String {
-    if requested_url.len() > 1 {
-        return requested_url
-            .trim_end_matches('/')
-            .trim_end_matches("index.html")
-            .to_string();
+    if requested_url == "/" {
+        return requested_url.to_string();
     }
-    requested_url.to_string()
+
+    requested_url
+        .trim_end_matches('/')
+        .trim_end_matches("/index.html")
+        .to_string()
 }
