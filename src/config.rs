@@ -115,7 +115,7 @@ impl Config<'_> {
     }
 
     fn build_mime_types() -> MimeTypes {
-        let mut mime_types = HashMap::new();
+        let mut mime_types = MimeTypes::new();
 
         mime_types.insert("default", "application/octet-stream");
         mime_types.insert("aac", "audio/aac");
