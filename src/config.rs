@@ -84,7 +84,7 @@ impl<'a> Config<'a> {
     }
 
     pub fn get_url_entry(&mut self, requested_url: &str) -> Option<&UrlEntry> {
-        self.rebuild_urls_map(requested_url);
+        self.update_urls_map(requested_url);
         self.urls_map.get(requested_url)
     }
 }
@@ -183,7 +183,7 @@ impl Config<'_> {
             .into_bytes()
     }
 
-    fn rebuild_urls_map(&mut self, requested_url: &str) {
+    fn update_urls_map(&mut self, requested_url: &str) {
         let mut fs_path: Option<PathBuf> = None;
 
         if let Some(url_entry) = self.urls_map.get(requested_url) {
