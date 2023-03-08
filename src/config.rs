@@ -30,6 +30,7 @@ pub const PAGE_TEMPLATE: &str = r#"
 </html>
 "#;
 
+#[derive(Debug, Clone)]
 pub struct UrlEntry {
     pub fs_path: PathBuf,
     pub cached_content: Option<Vec<u8>>,
