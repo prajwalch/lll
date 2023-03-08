@@ -43,7 +43,7 @@ fn handle_request(request: Request, config: &mut Config) -> Result<(), IoError> 
 
     let requested_url = normalize_url(request.url());
     dbg!(&requested_url);
-    let old_url_entry = match config.get_url_entry(&requested_url) {
+    let mut url_entry = match config.get_url_entry(&requested_url) {
         Some(entry) => entry.clone(), // TODO: Avoid cloning here if possible
         None => {
             let response = Response::from_string(config::generate_not_found_page())
@@ -54,29 +54,24 @@ fn handle_request(request: Request, config: &mut Config) -> Result<(), IoError> 
     };
 
     if let (Some(cached_content), Some(content_type)) =
-        (&old_url_entry.cached_content, &old_url_entry.content_type)
+        (&url_entry.cached_content, &url_entry.content_type)
     {
         let res = Response::from_data(cached_content.to_owned())
             .with_header(Header::from_str(content_type).unwrap());
         return request.respond(res);
     }
 
-    let content = fs::read(old_url_entry.fs_path.as_path())?;
-    let content_type = config.get_content_type(
-        old_url_entry
-            .fs_path
-            .extension()
-            .unwrap_or("default".as_ref()),
-    );
+    let content = fs::read(url_entry.fs_path.as_path())?;
+    let content_type =
+        config.get_content_type(url_entry.fs_path.extension().unwrap_or("default".as_ref()));
     request.respond(
         Response::from_data(content.clone()).with_header(Header::from_str(&content_type).unwrap()),
     )?;
 
     // Update the url entry with content and its type
-    config.urls_map.insert(
-        requested_url,
-        UrlEntry::new(old_url_entry.fs_path, Some(content), Some(content_type)),
-    );
+    url_entry.cached_content = Some(content);
+    url_entry.content_type = Some(content_type);
+    config.urls_map.insert(requested_url, url_entry);
     Ok(())
 }
 
