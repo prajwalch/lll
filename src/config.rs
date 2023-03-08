@@ -99,7 +99,7 @@ impl Config<'_> {
 
             self.urls_map
                 .entry(mapped_url)
-                .or_insert_with(|| UrlEntry::new(entry_fs_path, None, None));
+                .or_insert(UrlEntry::new(entry_fs_path, None, None));
         });
         let mapped_root_url = self.fs_path_to_url(path);
 
