@@ -102,18 +102,6 @@ impl<'a> Config<'a> {
 }
 
 impl Config<'_> {
-    fn build_urls_map(&mut self, path: &Path) {
-        path.read_dir().unwrap().into_iter().for_each(|dir_entry| {
-            let dir_entry = dir_entry.unwrap();
-            let entry_fs_path = dir_entry.path();
-            let mapped_url = self.fs_path_to_url(&entry_fs_path);
-            dbg!(&mapped_url);
-
-            self.urls_map
-                .insert(mapped_url, UrlEntry::new(entry_fs_path, None, None));
-        });
-    }
-
     fn build_mime_types() -> MimeTypes {
         let mut mime_types = MimeTypes::new();
 
@@ -205,6 +193,18 @@ impl Config<'_> {
         mime_types.insert("7z", "application/x-7z-compressed");
 
         mime_types
+    }
+
+    fn build_urls_map(&mut self, path: &Path) {
+        path.read_dir().unwrap().into_iter().for_each(|dir_entry| {
+            let dir_entry = dir_entry.unwrap();
+            let entry_fs_path = dir_entry.path();
+            let mapped_url = self.fs_path_to_url(&entry_fs_path);
+            dbg!(&mapped_url);
+
+            self.urls_map
+                .insert(mapped_url, UrlEntry::new(entry_fs_path, None, None));
+        });
     }
 
     fn build_file_listing_page(&self) -> Vec<u8> {
