@@ -41,7 +41,7 @@ fn start_server(config: &mut Config) -> Result<(), IoError> {
 fn handle_request(request: Request, config: &mut Config) -> Result<(), IoError> {
     println!("{:?}: {}", request.method(), request.url());
 
-    let requested_url = request.url().to_string();
+    let requested_url = normalize_url(request.url());
     let old_url_entry = match config.urls_map.get(&requested_url) {
         Some(entry) => entry,
         None => {
@@ -85,4 +85,14 @@ fn handle_request(request: Request, config: &mut Config) -> Result<(), IoError> 
         ),
     );
     Ok(())
+}
+
+fn normalize_url(requested_url: &str) -> String {
+    if requested_url.len() > 1 {
+        return requested_url
+            .trim_end_matches('/')
+            .trim_end_matches("index.html")
+            .to_string();
+    }
+    requested_url.to_string()
 }
