@@ -204,13 +204,13 @@ impl Config<'_> {
             mapped_root_url,
             UrlEntry::new(
                 PathBuf::new(),
-                Some(self.build_file_listing_page(path)),
+                Some(self.generate_file_listing_page(path)),
                 Some(self.get_content_type("html")),
             ),
         );
     }
 
-    fn build_file_listing_page(&self, path: &Path) -> Vec<u8> {
+    fn generate_file_listing_page(&self, path: &Path) -> Vec<u8> {
         let file_list_urls = self
             .urls_map
             .iter()
