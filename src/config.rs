@@ -171,7 +171,7 @@ impl Config<'_> {
                     }
                 })
             })
-            .map(|url| format!(r#"<a href="{}">{}</a><br>"#, url, url))
+            .map(|url| format!(r#"<a href="{url}">{url}</a><br>"#))
             .collect::<String>();
 
         let mut content = String::from("<h1>File Listing</h1><br>");
