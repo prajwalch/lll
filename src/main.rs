@@ -10,11 +10,13 @@ use config::Config;
 use tiny_http::{Header, Request, Response, Server};
 
 fn main() {
-    let path = env::args().nth(1).unwrap_or_else(|| {
-        eprintln!("Path is not provided, serving current directory");
-        String::from(".")
-    });
-    let path = PathBuf::from(path);
+    let path = env::args().nth(1).map_or_else(
+        || {
+            eprintln!("Path is not provided, serving current directory");
+            env::current_dir().unwrap_or(PathBuf::from("."))
+        },
+        PathBuf::from,
+    );
 
     if !path.is_dir() {
         eprintln!("Please provide a directory to serve");
