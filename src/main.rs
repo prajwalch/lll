@@ -58,7 +58,7 @@ fn handle_request(request: Request, config: &mut Config) -> Result<(), IoError> 
     if let (Some(cached_content), Some(content_type)) =
         (&url_entry.cached_content, &url_entry.content_type)
     {
-        let res = Response::from_data(cached_content.to_owned())
+        let res = Response::from_data(cached_content.clone())
             .with_header(Header::from_str(content_type).unwrap());
         return request.respond(res);
     }
