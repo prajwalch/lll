@@ -120,6 +120,10 @@ impl Config<'_> {
     fn fs_path_to_url(&self, fs_path: &Path) -> String {
         dbg!(self.root_path, fs_path);
 
+        if fs_path == self.root_path {
+            return String::from("/");
+        }
+
         let parent = if let Some(parent) = fs_path.parent() {
             if parent == Path::new("") {
                 Path::new(".")
@@ -130,27 +134,22 @@ impl Config<'_> {
             return String::from("/");
         };
 
-        let is_root_path = (parent == self.root_path) || (fs_path == self.root_path);
-        let basename = if let Some(name) = fs_path.file_name() {
-            name.to_str().expect("OsStr should convert into &str")
-        } else {
-            return String::from("/");
-        };
+        let parent_is_root_path = parent == self.root_path;
+        let basename = fs_path.file_name().map_or(String::new(), |file_name| {
+            file_name.to_string_lossy().replace("index.html", "")
+        });
 
-        #[rustfmt::skip]
-        let basename = if basename == "index.html" { "" } else { basename };
-
-        if is_root_path {
+        if parent_is_root_path {
             return format!("/{basename}");
         }
         dbg!(fs_path, self.root_path);
+
         let parent = fs_path
             .parent()
             .unwrap()
             .strip_prefix(self.root_path)
             .unwrap()
-            .to_str()
-            .expect("fs_path's parent should able to convert into &str");
+            .to_string_lossy();
 
         if basename.is_empty() {
             return format!("/{parent}");
