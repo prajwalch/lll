@@ -6,7 +6,7 @@ use std::io::Error as IoError;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use config::Config;
+use crate::config::Config;
 use tiny_http::{Header, Request, Response, Server};
 
 fn main() {
