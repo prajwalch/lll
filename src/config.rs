@@ -141,11 +141,12 @@ impl<'a> UrlsTable<'a> {
                     }
                 })
             })
-            .map(|url| format!(r#"<a href="{url}">{url}</a><br>"#))
+            .map(|url| format!(r#"<li><a href="{url}">{url}</a></li>"#))
             .collect::<String>();
 
-        let mut content = String::from("<h1>File Listing</h1><br>");
+        let mut content = String::from("<h1>File Listing</h1><br><ul>");
         content.push_str(&file_list_urls);
+        content.push_str("</ul>");
 
         PAGE_TEMPLATE
             .replace("{title}", "File Listing")
