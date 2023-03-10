@@ -53,7 +53,6 @@ impl<'a> UrlsTable<'a> {
             table: HashMap::new(),
         };
         urls_table.map_urls_from(root_path);
-
         urls_table
     }
 
