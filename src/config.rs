@@ -2,9 +2,6 @@ use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
-type UrlsMap = HashMap<String, UrlEntry>;
-type MimeTypes = HashMap<&'static str, &'static str>;
-
 pub const PAGE_TEMPLATE: &str = r#"
 <!DOCTYPE html>
 <html lang="en">
@@ -30,66 +27,41 @@ pub const PAGE_TEMPLATE: &str = r#"
 </html>
 "#;
 
-#[derive(Debug, Clone)]
-pub struct UrlEntry {
-    pub fs_path: PathBuf,
-    pub cached_content: Option<Vec<u8>>,
-    pub content_type: Option<String>,
-}
-
-impl UrlEntry {
-    pub fn new(
-        fs_path: PathBuf,
-        cached_content: Option<Vec<u8>>,
-        content_type: Option<String>,
-    ) -> Self {
-        Self {
-            fs_path,
-            cached_content,
-            content_type,
-        }
-    }
-}
-
 pub struct Config<'a> {
-    root_path: &'a Path,
-    pub urls_map: UrlsMap,
-    mime_types: MimeTypes,
+    pub urls_table: UrlsTable<'a>,
+    pub mime_types: MimeTypes,
 }
 
 impl<'a> Config<'a> {
     pub fn new(root_path: &'a Path) -> Self {
-        let mut config = Self {
-            root_path,
-            urls_map: UrlsMap::new(),
-            mime_types: build_mime_types(),
-        };
-        config.map_urls_from(root_path);
-        config
-    }
-
-    pub fn get_url_entry(&mut self, requested_url: &str) -> Option<&UrlEntry> {
-        self.update_urls_map(requested_url);
-        self.urls_map.get(requested_url)
-    }
-
-    pub fn get_content_type<E>(&self, file_extension: E) -> String
-    where
-        E: AsRef<OsStr>,
-    {
-        let file_extension = file_extension.as_ref();
-        let default_mime_type =
-            format!("Content-Type: {}", self.mime_types.get("default").unwrap());
-
-        self.mime_types
-            .get(file_extension.to_str().unwrap())
-            .map_or(default_mime_type, |mime_type| {
-                format!("Content-Type: {mime_type}")
-            })
+        Self {
+            urls_table: UrlsTable::new(root_path),
+            mime_types: MimeTypes::new(),
+        }
     }
 }
 
-impl Config<'_> {
+pub struct UrlsTable<'a> {
+    root_path: &'a Path,
+    table: HashMap<String, UrlEntry>,
+}
+
+impl<'a> UrlsTable<'a> {
+    pub fn new(root_path: &'a Path) -> Self {
+        let mut urls_table = Self {
+            root_path,
+            table: HashMap::new(),
+        };
+        urls_table.map_urls_from(root_path);
+
+        urls_table
+    }
+
+    pub fn get_url_entry(&mut self, requested_url: &str) -> Option<&mut UrlEntry> {
+        self.update_urls_map(requested_url);
+        self.table.get_mut(requested_url)
+    }
+
     fn map_urls_from(&mut self, path: &Path) {
         path.read_dir().unwrap().into_iter().for_each(|dir_entry| {
             let dir_entry = dir_entry.unwrap();
@@ -97,22 +69,22 @@ impl Config<'_> {
             let mapped_url = self.fs_path_to_url(&entry_fs_path);
             dbg!(&mapped_url);
 
-            self.urls_map
+            self.table
                 .entry(mapped_url)
                 .or_insert(UrlEntry::new(entry_fs_path, None, None));
         });
         let mapped_root_url = self.fs_path_to_url(path);
 
-        if self.urls_map.contains_key(&mapped_root_url) {
+        if self.table.contains_key(&mapped_root_url) {
             return;
         }
         // If path not contains `index.html` file build a file listing page for it
-        self.urls_map.insert(
+        self.table.insert(
             mapped_root_url,
             UrlEntry::new(
                 PathBuf::new(),
                 Some(self.generate_file_listing_page(path)),
-                Some(self.get_content_type("html")),
+                Some(String::from("Content-Type: text/html")),
             ),
         );
     }
@@ -159,7 +131,7 @@ impl Config<'_> {
 
     fn generate_file_listing_page(&self, path: &Path) -> Vec<u8> {
         let file_list_urls = self
-            .urls_map
+            .table
             .iter()
             .filter_map(|(mapped_url, url_entry)| {
                 url_entry.fs_path.parent().and_then(|parent| {
@@ -182,15 +154,15 @@ impl Config<'_> {
             .into_bytes()
     }
 
-    fn update_urls_map(&mut self, requested_url: &str) {
+    pub fn update_urls_map(&mut self, requested_url: &str) {
         let mut fs_path: Option<PathBuf> = None;
 
-        if let Some(url_entry) = self.urls_map.get(requested_url) {
+        if let Some(url_entry) = self.table.get(requested_url) {
             if url_entry.cached_content.is_some() || url_entry.fs_path.is_file() {
                 return;
             }
             fs_path = Some(url_entry.fs_path.clone());
-            self.urls_map.remove(requested_url);
+            self.table.remove(requested_url);
         }
         let fs_path = fs_path.unwrap_or(self.url_to_fs_path(requested_url));
 
@@ -212,11 +184,54 @@ impl Config<'_> {
     }
 
     fn url_to_fs_path(&self, requested_url: &str) -> PathBuf {
-        if let Some(url_entry) = self.urls_map.get(requested_url) {
+        if let Some(url_entry) = self.table.get(requested_url) {
             return url_entry.fs_path.clone();
         }
         let root_path = self.root_path.to_path_buf();
         root_path.join(requested_url.strip_prefix('/').unwrap())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct UrlEntry {
+    pub fs_path: PathBuf,
+    pub cached_content: Option<Vec<u8>>,
+    pub content_type: Option<String>,
+}
+
+impl UrlEntry {
+    pub fn new(
+        fs_path: PathBuf,
+        cached_content: Option<Vec<u8>>,
+        content_type: Option<String>,
+    ) -> Self {
+        Self {
+            fs_path,
+            cached_content,
+            content_type,
+        }
+    }
+}
+
+pub struct MimeTypes(HashMap<&'static str, &'static str>);
+
+impl MimeTypes {
+    pub fn new() -> Self {
+        Self(build_mime_types())
+    }
+
+    pub fn get_content_type<E>(&self, file_extension: E) -> String
+    where
+        E: AsRef<OsStr>,
+    {
+        let file_extension = file_extension.as_ref();
+        let default_mime_type = format!("Content-Type: {}", self.0.get("default").unwrap());
+
+        self.0
+            .get(file_extension.to_str().unwrap())
+            .map_or(default_mime_type, |mime_type| {
+                format!("Content-Type: {mime_type}")
+            })
     }
 }
 
@@ -227,8 +242,8 @@ pub fn generate_not_found_page() -> String {
         .replace("{content}", "<h1>404 Not Found</h1><p>Nothing matches the given URI</p>")
 }
 
-fn build_mime_types() -> MimeTypes {
-    let mut mime_types = MimeTypes::new();
+fn build_mime_types() -> HashMap<&'static str, &'static str> {
+    let mut mime_types = HashMap::new();
 
     mime_types.insert("default", "application/octet-stream");
     mime_types.insert("aac", "audio/aac");

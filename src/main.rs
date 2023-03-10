@@ -45,11 +45,12 @@ fn handle_request(request: Request, config: &mut Config) -> Result<(), IoError> 
 
     let requested_url = normalize_url(request.url());
     dbg!(&requested_url);
-    let mut url_entry = match config.get_url_entry(&requested_url) {
-        Some(entry) => entry.clone(), // TODO: Avoid cloning here if possible
+
+    let url_entry = match config.urls_table.get_url_entry(&requested_url) {
+        Some(entry) => entry,
         None => {
             let response = Response::from_string(config::generate_not_found_page())
-                .with_header(Header::from_str(&config.get_content_type("html")).unwrap())
+                .with_header(Header::from_str(&config.mime_types.get_content_type("html")).unwrap())
                 .with_status_code(404);
             return request.respond(response);
         }
@@ -58,23 +59,25 @@ fn handle_request(request: Request, config: &mut Config) -> Result<(), IoError> 
     if let (Some(cached_content), Some(content_type)) =
         (&url_entry.cached_content, &url_entry.content_type)
     {
+        // FIXME: Avoid cloning cached content
         let res = Response::from_data(cached_content.clone())
             .with_header(Header::from_str(content_type).unwrap());
         return request.respond(res);
     }
 
     let content = fs::read(&url_entry.fs_path)?;
-    let content_type =
-        config.get_content_type(url_entry.fs_path.extension().unwrap_or("default".as_ref()));
+    let content_type = config
+        .mime_types
+        .get_content_type(url_entry.fs_path.extension().unwrap_or("default".as_ref()));
 
+    // FIXME: Avoid cloning content
     request.respond(
         Response::from_data(content.clone()).with_header(Header::from_str(&content_type).unwrap()),
     )?;
 
-    // Update the url entry with content and its type
+    // Update the url entry
     url_entry.cached_content = Some(content);
     url_entry.content_type = Some(content_type);
-    config.urls_map.insert(requested_url, url_entry);
     Ok(())
 }
 
