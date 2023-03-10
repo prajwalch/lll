@@ -56,7 +56,7 @@ impl<'a> UrlsTable<'a> {
         urls_table
     }
 
-    pub fn get_url_entry(&mut self, requested_url: &str) -> Option<&mut UrlEntry> {
+    pub fn get_url_entry_mut(&mut self, requested_url: &str) -> Option<&mut UrlEntry> {
         self.update_table(requested_url);
         self.table.get_mut(requested_url)
     }

@@ -46,7 +46,7 @@ fn handle_request(request: Request, config: &mut Config) -> Result<(), IoError> 
     let requested_url = normalize_url(request.url());
     dbg!(&requested_url);
 
-    let url_entry = match config.urls_table.get_url_entry(&requested_url) {
+    let url_entry = match config.urls_table.get_url_entry_mut(&requested_url) {
         Some(entry) => entry,
         None => {
             let response = Response::from_string(config::generate_not_found_page())
