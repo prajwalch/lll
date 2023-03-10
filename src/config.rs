@@ -58,7 +58,7 @@ impl<'a> UrlsTable<'a> {
     }
 
     pub fn get_url_entry(&mut self, requested_url: &str) -> Option<&mut UrlEntry> {
-        self.update_urls_map(requested_url);
+        self.update_table(requested_url);
         self.table.get_mut(requested_url)
     }
 
@@ -154,7 +154,7 @@ impl<'a> UrlsTable<'a> {
             .into_bytes()
     }
 
-    pub fn update_urls_map(&mut self, requested_url: &str) {
+    pub fn update_table(&mut self, requested_url: &str) {
         let mut fs_path: Option<PathBuf> = None;
 
         if let Some(url_entry) = self.table.get(requested_url) {
