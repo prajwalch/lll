@@ -49,7 +49,7 @@ fn handle_request(request: Request, config: &mut Config) -> Result<(), IoError> 
     let url_entry = match config.urls_table.get_url_entry_mut(&requested_url) {
         Some(entry) => entry,
         None => {
-            let response = Response::from_string(config::generate_not_found_page())
+            let response = Response::from_string(config::build_not_found_page())
                 .with_header(Header::from_str(&config.mime_types.get_content_type("html")).unwrap())
                 .with_status_code(404);
             return request.respond(response);

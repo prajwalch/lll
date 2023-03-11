@@ -153,7 +153,7 @@ impl<'a> UrlsTable<'a> {
             mapped_root_url,
             UrlEntry::new(
                 PathBuf::new(),
-                Some(self.generate_directory_listing_page(path)),
+                Some(self.build_directory_listing_page(path)),
                 Some(String::from("Content-Type: text/html")),
             ),
         );
@@ -200,7 +200,7 @@ impl<'a> UrlsTable<'a> {
         format!("/{parent}/{basename}")
     }
 
-    fn generate_directory_listing_page(&self, path: &Path) -> Vec<u8> {
+    fn build_directory_listing_page(&self, path: &Path) -> Vec<u8> {
         let file_list_urls = self
             .table
             .iter()
@@ -313,7 +313,7 @@ impl MimeTypes {
 }
 
 #[rustfmt::skip]
-pub fn generate_not_found_page() -> String {
+pub fn build_not_found_page() -> String {
     PAGE_TEMPLATE
         .replace("{title}", "Error Response")
         .replace("{content}", "<h1>404 Not Found</h1><p>Nothing matches the given URI</p>")
