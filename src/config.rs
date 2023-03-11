@@ -52,7 +52,9 @@ impl<'a> UrlsTable<'a> {
             root_path,
             table: HashMap::new(),
         };
-        urls_table.map_urls_from(root_path);
+        if let Err(e) = urls_table.map_urls_from(root_path) {
+            eprintln!("{e}");
+        }
         urls_table
     }
 
@@ -61,21 +63,23 @@ impl<'a> UrlsTable<'a> {
         self.table.get_mut(requested_url)
     }
 
-    fn map_urls_from(&mut self, path: &Path) {
-        path.read_dir().unwrap().for_each(|dir_entry| {
-            let dir_entry = dir_entry.unwrap();
-            let entry_fs_path = dir_entry.path();
-            let mapped_url = self.fs_path_to_url(&entry_fs_path);
-            dbg!(&mapped_url);
+    fn map_urls_from(&mut self, path: &Path) -> Result<(), String> {
+        path.read_dir()
+            .map_err(|err| format!("Unable to map urls from `{}`: {}", path.display(), err))?
+            .for_each(|dir_entry| {
+                let dir_entry = dir_entry.unwrap();
+                let entry_fs_path = dir_entry.path();
+                let mapped_url = self.fs_path_to_url(&entry_fs_path);
+                dbg!(&mapped_url);
 
-            self.table
-                .entry(mapped_url)
-                .or_insert(UrlEntry::new(entry_fs_path, None, None));
-        });
+                self.table
+                    .entry(mapped_url)
+                    .or_insert(UrlEntry::new(entry_fs_path, None, None));
+            });
         let mapped_root_url = self.fs_path_to_url(path);
 
         if self.table.contains_key(&mapped_root_url) {
-            return;
+            return Ok(());
         }
         // If path not contains `index.html` file build a file listing page for it
         self.table.insert(
@@ -86,6 +90,7 @@ impl<'a> UrlsTable<'a> {
                 Some(String::from("Content-Type: text/html")),
             ),
         );
+        Ok(())
     }
 
     fn fs_path_to_url(&self, fs_path: &Path) -> String {
@@ -179,7 +184,9 @@ impl<'a> UrlsTable<'a> {
             if ancestor == self.root_path {
                 break;
             }
-            self.map_urls_from(ancestor);
+            if let Err(e) = self.map_urls_from(ancestor) {
+                eprintln!("{e}");
+            }
         }
     }
 
