@@ -19,6 +19,16 @@ pub const PAGE_TEMPLATE: &str = r#"
         a {
             color: #948bff;
         }
+
+        ul {
+            padding: 0;
+            margin-left: 20px;
+        }
+        
+        li {
+            list-style-type: none;
+        }
+
     </style>
 </head>
 <body>
