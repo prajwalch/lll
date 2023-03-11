@@ -153,7 +153,7 @@ impl<'a> UrlsTable<'a> {
             mapped_root_url,
             UrlEntry::new(
                 PathBuf::new(),
-                Some(self.generate_file_listing_page(path)),
+                Some(self.generate_directory_listing_page(path)),
                 Some(String::from("Content-Type: text/html")),
             ),
         );
@@ -200,7 +200,7 @@ impl<'a> UrlsTable<'a> {
         format!("/{parent}/{basename}")
     }
 
-    fn generate_file_listing_page(&self, path: &Path) -> Vec<u8> {
+    fn generate_directory_listing_page(&self, path: &Path) -> Vec<u8> {
         let file_list_urls = self
             .table
             .iter()
