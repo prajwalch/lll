@@ -62,7 +62,7 @@ impl<'a> UrlsTable<'a> {
     }
 
     fn map_urls_from(&mut self, path: &Path) {
-        path.read_dir().unwrap().into_iter().for_each(|dir_entry| {
+        path.read_dir().unwrap().for_each(|dir_entry| {
             let dir_entry = dir_entry.unwrap();
             let entry_fs_path = dir_entry.path();
             let mapped_url = self.fs_path_to_url(&entry_fs_path);
