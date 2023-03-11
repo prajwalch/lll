@@ -29,6 +29,9 @@ pub const PAGE_TEMPLATE: &str = r#"
             list-style-type: none;
         }
 
+        svg {
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body>
@@ -36,6 +39,46 @@ pub const PAGE_TEMPLATE: &str = r#"
 </body>
 </html>
 "#;
+
+const FILE_SVG_ICON: &str = r##"
+<svg width="40px" height="40px" viewBox="0 0 1024 1024" class="icon" version="1.1"
+    xmlns="http://www.w3.org/2000/svg">
+    <path
+        d="M576 102.4H268.8c-14.08 0-25.6 11.52-25.6 25.6v742.4c0 14.08 11.52 25.6 25.6 25.6h512c14.08 0 25.6-11.52 25.6-25.6V332.8L576 102.4z"
+        fill="#00B2AE" />
+    <path
+        d="M780.8 908.8H268.8c-21.76 0-38.4-16.64-38.4-38.4V128c0-21.76 16.64-38.4 38.4-38.4h312.32L819.2 327.68V870.4c0 21.76-16.64 38.4-38.4 38.4zM268.8 115.2c-7.68 0-12.8 5.12-12.8 12.8v742.4c0 7.68 5.12 12.8 12.8 12.8h512c7.68 0 12.8-5.12 12.8-12.8V337.92L570.88 115.2H268.8z"
+        fill="#231C1C" />
+    <path d="M576 307.2c0 14.08 11.52 25.6 25.6 25.6h204.8L576 102.4v204.8z" fill="#008181" />
+    <path
+        d="M806.4 345.6H601.6c-21.76 0-38.4-16.64-38.4-38.4V102.4c0-5.12 2.56-10.24 7.68-11.52 5.12-2.56 10.24-1.28 14.08 2.56l230.4 230.4c3.84 3.84 5.12 8.96 2.56 14.08-1.28 5.12-6.4 7.68-11.52 7.68zM588.8 133.12V307.2c0 7.68 5.12 12.8 12.8 12.8h174.08L588.8 133.12zM332.8 435.2h371.2v25.6H332.8zM332.8 524.8h371.2v25.6H332.8z"
+        fill="#231C1C" />
+    <path d="M332.8 614.4h371.2v25.6H332.8z" fill="#231C1C" />
+    <path d="M332.8 716.8h371.2v25.6H332.8z" fill="#231C1C" />
+</svg>
+"##;
+
+const FOLDER_SVG_ICON: &str = r##"
+<svg width="40px" height="40px" viewBox="0 0 1024 1024" class="icon" version="1.1"
+        xmlns="http://www.w3.org/2000/svg" fill="#000000">
+        <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+        <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+        <g id="SVGRepo_iconCarrier">
+            <path
+                d="M563.2 358.4c0 14.08-11.52 25.6-25.6 25.6H153.6c-14.08 0-25.6-11.52-25.6-25.6V166.4c0-14.08 11.52-25.6 25.6-25.6h230.4c14.08 0 25.6 11.52 25.6 25.6l153.6 192z"
+                fill="#D3AC51"></path>
+            <path
+                d="M537.6 396.8H153.6c-21.76 0-38.4-16.64-38.4-38.4V166.4c0-21.76 16.64-38.4 38.4-38.4h230.4c19.2 0 35.84 14.08 38.4 33.28l153.6 192v5.12c0 21.76-16.64 38.4-38.4 38.4zM153.6 153.6c-7.68 0-12.8 5.12-12.8 12.8v192c0 7.68 5.12 12.8 12.8 12.8h384c5.12 0 10.24-3.84 12.8-8.96L396.8 171.52V166.4c0-7.68-5.12-12.8-12.8-12.8H153.6z"
+                fill="#231C1C"></path>
+            <path
+                d="M921.6 768c0 14.08-11.52 25.6-25.6 25.6H153.6c-14.08 0-25.6-11.52-25.6-25.6V256c0-14.08 11.52-25.6 25.6-25.6h742.4c14.08 0 25.6 11.52 25.6 25.6v512z"
+                fill="#FAC546"></path>
+            <path
+                d="M896 806.4H153.6c-21.76 0-38.4-16.64-38.4-38.4V256c0-21.76 16.64-38.4 38.4-38.4h742.4c21.76 0 38.4 16.64 38.4 38.4v512c0 21.76-16.64 38.4-38.4 38.4zM153.6 243.2c-7.68 0-12.8 5.12-12.8 12.8v512c0 7.68 5.12 12.8 12.8 12.8h742.4c7.68 0 12.8-5.12 12.8-12.8V256c0-7.68-5.12-12.8-12.8-12.8H153.6z"
+                fill="#231C1C"></path>
+        </g>
+    </svg>
+"##;
 
 pub struct Config<'a> {
     pub urls_table: UrlsTable<'a>,
@@ -149,14 +192,20 @@ impl<'a> UrlsTable<'a> {
             .iter()
             .filter_map(|(mapped_url, url_entry)| {
                 url_entry.fs_path.parent().and_then(|parent| {
-                    if parent == path {
-                        Some(mapped_url)
-                    } else {
-                        None
+                    if parent != path {
+                        return None;
                     }
+
+                    let inner_text = if url_entry.fs_path.is_dir() {
+                        format!("{FOLDER_SVG_ICON} {mapped_url}")
+                    } else {
+                        format!("{FILE_SVG_ICON} {}", mapped_url.strip_prefix('/').unwrap())
+                    };
+
+                    Some((mapped_url, inner_text))
                 })
             })
-            .map(|url| format!(r#"<li><a href="{url}">{url}</a></li>"#))
+            .map(|(href, inner_text)| format!(r#"<li><a href="{href}">{inner_text}</a></li>"#))
             .collect::<String>();
 
         let mut content = String::from("<h1>File Listing</h1><br><ul>");
