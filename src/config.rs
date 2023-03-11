@@ -12,21 +12,35 @@ pub const PAGE_TEMPLATE: &str = r#"
     <title>{title}</title>
     <style>
         body {
-            background-color: #0a0a0a;
+            background-color: #000000;
             color: #f5f5f5;
+            padding: 0px 50px;
         }
 
         a {
+            display: block;
             color: #948bff;
+            padding: 2px 10px;
+            border-radius: 5px;
+            text-decoration: none;
+        }
+        
+        a:hover {
+            background-color: #090909;
         }
 
         ul {
-            padding: 0;
-            margin-left: 20px;
+            padding: 10px 0px;
+            border-top: 1px solid #1a1a1a;
+            border-bottom: 1px solid #1a1a1a;
         }
         
         li {
             list-style-type: none;
+        }
+        
+        li:nth-child(n + 2) {            
+            margin-top: 5px;
         }
 
         svg {
