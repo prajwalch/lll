@@ -148,7 +148,7 @@ impl<'a> UrlsTable<'a> {
         if self.table.contains_key(&mapped_root_url) {
             return Ok(());
         }
-        // If path not contains `index.html` file build a file listing page for it
+        // If path not contains `index.html` file build a directory listing page for it
         self.table.insert(
             mapped_root_url,
             UrlEntry::new(
@@ -222,12 +222,12 @@ impl<'a> UrlsTable<'a> {
             .map(|(href, inner_text)| format!(r#"<li><a href="{href}">{inner_text}</a></li>"#))
             .collect::<String>();
 
-        let mut content = String::from("<h1>File Listing</h1><br><ul>");
+        let mut content = String::from("<h1>Directory Listing</h1><br><ul>");
         content.push_str(&file_list_urls);
         content.push_str("</ul>");
 
         PAGE_TEMPLATE
-            .replace("{title}", "File Listing")
+            .replace("{title}", "Directory Listing")
             .replace("{content}", &content)
             .into_bytes()
     }
