@@ -17,5 +17,8 @@ $ ./target/release/lll [path]
 $ cargo run --release -- [path]
 ```
 
+## Known issues
+- If you have a dir inside the given `path` that contains `index.html`, `somestyle.css`, `somescript.js` and some other assets than requesting `localhost:8080/somedir` will not loads its resources like `css` and `js`. To workaround this either you will need to put trailing slash in the url bar like `localhost:8080/somedir/` or put the absolute path of resources in your html file like `link rel="stylesheet" href="/somedir/somestyle.css">` 
+
 ## License
  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
