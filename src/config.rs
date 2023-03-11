@@ -210,13 +210,13 @@ impl<'a> UrlsTable<'a> {
                         return None;
                     }
 
-                    let inner_text = if url_entry.fs_path.is_dir() {
-                        format!("{FOLDER_SVG_ICON} {mapped_url}")
+                    let basename = url_entry.fs_path.file_name().unwrap().to_string_lossy();
+                    let icon = if url_entry.fs_path.is_dir() {
+                        FOLDER_SVG_ICON
                     } else {
-                        format!("{FILE_SVG_ICON} {}", mapped_url.strip_prefix('/').unwrap())
+                        FILE_SVG_ICON
                     };
-
-                    Some((mapped_url, inner_text))
+                    Some((mapped_url, format!("{icon} {basename}")))
                 })
             })
             .map(|(href, inner_text)| format!(r#"<li><a href="{href}">{inner_text}</a></li>"#))
