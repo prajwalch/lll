@@ -220,10 +220,7 @@ impl MimeTypes {
         Self(build_mime_types())
     }
 
-    pub fn get_content_type<E>(&self, file_extension: E) -> String
-    where
-        E: AsRef<OsStr>,
-    {
+    pub fn get_content_type<E: AsRef<OsStr>>(&self, file_extension: E) -> String {
         let file_extension = file_extension.as_ref();
         let default_mime_type = format!("Content-Type: {}", self.0.get("default").unwrap());
 
