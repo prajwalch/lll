@@ -29,9 +29,8 @@ fn main() {
     }
 }
 
-fn start_server(config: &mut Config) -> Result<(), IoError> {
-    // TODO: Combine the error returned by this with IoError and return it too
-    let server = Server::http("127.0.0.1:8080").unwrap();
+fn start_server(config: &mut Config) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
+    let server = Server::http("127.0.0.1:8080")?;
     println!("Listening at `http://{}`", server.server_addr());
 
     for request in server.incoming_requests() {
