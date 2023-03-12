@@ -1,6 +1,7 @@
 mod config;
 
 use std::env;
+use std::error::Error;
 use std::fs;
 use std::io::Error as IoError;
 use std::path::PathBuf;
@@ -26,6 +27,11 @@ fn main() {
     let mut config = Config::new(path.as_path());
     if let Err(e) = start_server(&mut config) {
         eprintln!("Internal error: {e}");
+
+        #[cfg(debug_assertions)]
+        if let Some(source) = e.source() {
+            dbg!(source);
+        }
     }
 }
 
