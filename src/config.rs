@@ -205,21 +205,22 @@ impl<'a> UrlsTable<'a> {
             .table
             .iter()
             .filter_map(|(mapped_url, url_entry)| {
-                url_entry.fs_path.parent().and_then(|parent| {
-                    if parent != path {
-                        return None;
-                    }
+                if url_entry.fs_path.parent()? != path {
+                    return None;
+                }
 
-                    let basename = url_entry.fs_path.file_name().unwrap().to_string_lossy();
-                    let icon = if url_entry.fs_path.is_dir() {
-                        FOLDER_SVG_ICON
-                    } else {
-                        FILE_SVG_ICON
-                    };
-                    Some((mapped_url, format!("{icon} {basename}")))
-                })
+                let icon = if url_entry.fs_path.is_dir() {
+                    FOLDER_SVG_ICON
+                } else {
+                    FILE_SVG_ICON
+                };
+                let basename = url_entry.fs_path.file_name().unwrap().to_string_lossy();
+                let inner_text = format!("{icon} {basename}");
+
+                Some(format!(
+                    r#"<li><a href="{mapped_url}">{inner_text}</a></li>"#
+                ))
             })
-            .map(|(href, inner_text)| format!(r#"<li><a href="{href}">{inner_text}</a></li>"#))
             .collect::<String>();
 
         let mut content = String::from("<h1>Directory Listing</h1><br><ul>");
