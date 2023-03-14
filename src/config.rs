@@ -233,7 +233,7 @@ impl<'a> UrlsTable<'a> {
             .into_bytes()
     }
 
-    pub fn update_table(&mut self, requested_url: &str) {
+    fn update_table(&mut self, requested_url: &str) {
         let mut fs_path: Option<PathBuf> = None;
 
         if let Some(url_entry) = self.table.get(requested_url) {
