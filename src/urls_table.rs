@@ -80,8 +80,6 @@ impl<'a> UrlsTable<'a> {
         if parent_is_root_path {
             return format!("/{basename}");
         }
-        dbg!(fs_path, self.root_path);
-
         let parent = fs_path
             .parent()
             .unwrap()
