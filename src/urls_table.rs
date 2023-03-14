@@ -80,9 +80,7 @@ impl<'a> UrlsTable<'a> {
         if parent_is_root_path {
             return format!("/{basename}");
         }
-        let parent = fs_path
-            .parent()
-            .unwrap()
+        let parent = parent
             .strip_prefix(self.root_path)
             .unwrap()
             .to_string_lossy();
