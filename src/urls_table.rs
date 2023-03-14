@@ -116,7 +116,7 @@ impl<'a> UrlsTable<'a> {
             })
             .collect::<String>();
 
-        let mut content = String::from("<h1>Directory Listing</h1><br><ul>");
+        let mut content = String::from("<h1>Directory Listing</h1><ul>");
         content.push_str(&file_list_urls);
         content.push_str("</ul>");
 
