@@ -26,18 +26,20 @@ impl<'a> UrlsTable<'a> {
     }
 
     fn map_urls_from(&mut self, path: &Path) -> Result<(), String> {
-        path.read_dir()
-            .map_err(|err| format!("Unable to map urls from `{}`: {}", path.display(), err))?
-            .for_each(|dir_entry| {
-                let dir_entry = dir_entry.unwrap();
-                let entry_fs_path = dir_entry.path();
-                let mapped_url = self.fs_path_to_url(&entry_fs_path);
-                dbg!(&mapped_url);
+        let dir_entries = path
+            .read_dir()
+            .map_err(|err| format!("Unable to map urls from `{}`: {}", path.display(), err))?;
 
-                self.table
-                    .entry(mapped_url)
-                    .or_insert(UrlEntry::new(entry_fs_path, None, None));
-            });
+        for dir_entry in dir_entries {
+            let dir_entry = dir_entry.unwrap();
+            let entry_fs_path = dir_entry.path();
+            let mapped_url = self.fs_path_to_url(&entry_fs_path);
+            dbg!(&mapped_url);
+
+            self.table
+                .entry(mapped_url)
+                .or_insert(UrlEntry::new(entry_fs_path, None, None));
+        }
         let mapped_root_url = self.fs_path_to_url(path);
 
         if self.table.contains_key(&mapped_root_url) {
