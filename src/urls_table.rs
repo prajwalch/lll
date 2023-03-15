@@ -75,22 +75,28 @@ impl<'a> UrlsTable<'a> {
         };
 
         let parent_is_root_path = parent == self.root_path;
-        let basename = fs_path.file_name().map_or(String::new(), |file_name| {
-            file_name.to_string_lossy().replace("index.html", "")
+        let mut basename = fs_path.file_name().map_or(String::new(), |file_name| {
+            file_name.to_string_lossy().to_string()
         });
 
+        let url_path = if fs_path.is_dir() {
+            basename.push('/');
+            basename
+        } else if basename == "index.html" {
+            String::new()
+        } else {
+            basename
+        };
+
         if parent_is_root_path {
-            return format!("/{basename}");
+            return format!("/{url_path}");
         }
         let parent = parent
             .strip_prefix(self.root_path)
             .unwrap()
             .to_string_lossy();
 
-        if basename.is_empty() {
-            return format!("/{parent}");
-        }
-        format!("/{parent}/{basename}")
+        format!("/{parent}/{url_path}")
     }
 
     fn build_directory_listing_page(&self, path: &Path) -> Vec<u8> {
