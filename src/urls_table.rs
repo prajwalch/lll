@@ -25,6 +25,10 @@ impl<'a> UrlsTable<'a> {
         self.table.get_mut(requested_url)
     }
 
+    pub fn contains_url_entry(&self, requested_url: &str) -> bool {
+        self.table.contains_key(requested_url)
+    }
+
     fn map_urls_from(&mut self, path: &Path) -> Result<(), String> {
         let dir_entries = path
             .read_dir()

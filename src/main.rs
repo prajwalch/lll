@@ -58,16 +58,31 @@ fn handle_request(
 ) -> Result<(), IoError> {
     println!("{:?}: {}", request.method(), request.url());
 
-    let requested_url = normalize_url(request.url());
+    let mut requested_url = normalize_url(request.url());
     dbg!(&requested_url);
 
     let url_entry = match urls_table.get_url_entry_mut(&requested_url) {
         Some(entry) => entry,
         None => {
             let response = Response::from_string(utils::build_not_found_page())
-                .with_header(Header::from_str(&mime_types.get_content_type("html")).unwrap())
-                .with_status_code(404);
-            return request.respond(response);
+                .with_header(Header::from_str(&mime_types.get_content_type("html")).unwrap());
+
+            // Put a trailing slash to url if not present and response `301 Moved Permanently`
+            // if we have a url entry associated with that url
+            //
+            // (see: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/301)
+            if !requested_url.ends_with('/') {
+                requested_url.push('/');
+
+                if urls_table.contains_url_entry(&requested_url) {
+                    return request.respond(
+                        response
+                            .with_header(Header::from_bytes("Location", requested_url).unwrap())
+                            .with_status_code(301),
+                    );
+                }
+            }
+            return request.respond(response.with_status_code(404));
         }
     };
 
