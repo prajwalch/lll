@@ -10,7 +10,7 @@ llll is a simple local http server. I mainly built this tool to learn more about
 ### For building and running manually
 ```bash
 $ cargo build --release
-$ ./target/release/lll [path]
+$ cargo run -- [path]
 ```
 ### For building and running
 ```bash
