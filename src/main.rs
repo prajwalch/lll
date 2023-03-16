@@ -14,6 +14,8 @@ use crate::urls_table::UrlsTable;
 
 use tiny_http::{Header, Request, Response, Server};
 
+const DEFAULT_PORT: u16 = 2058;
+
 fn main() {
     let path = env::args().nth(1).map_or_else(
         || {
@@ -28,7 +30,14 @@ fn main() {
         return;
     }
 
-    if let Err(e) = start_server(&path) {
+    let port: u16 = env::var_os("LPORT").map_or(DEFAULT_PORT, |given_port| {
+        given_port.to_string_lossy().parse().unwrap_or_else(|_| {
+            eprintln!("Invalid port {given_port:?}, falling back to default `{DEFAULT_PORT}`",);
+            DEFAULT_PORT
+        })
+    });
+
+    if let Err(e) = start_server(port, &path) {
         eprintln!("Internal error: {e}");
 
         #[cfg(debug_assertions)]
@@ -38,8 +47,8 @@ fn main() {
     }
 }
 
-fn start_server(root_path: &Path) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
-    let server = Server::http("127.0.0.1:8080")?;
+fn start_server(port: u16, root_path: &Path) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
+    let server = Server::http(("127.0.0.1", port))?;
     println!("Listening at `http://{}`", server.server_addr());
 
     let mut urls_table = UrlsTable::new(root_path);
