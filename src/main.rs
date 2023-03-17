@@ -84,11 +84,10 @@ fn handle_request(
                 requested_url.push('/');
 
                 if urls_table.contains_url_entry(&requested_url) {
-                    return request.respond(
-                        response
-                            .with_header(Header::from_bytes("Location", requested_url).unwrap())
-                            .with_status_code(301),
-                    );
+                    let response = response
+                        .with_header(Header::from_bytes("Location", requested_url).unwrap())
+                        .with_status_code(301);
+                    return request.respond(response);
                 }
             }
             return request.respond(response.with_status_code(404));
