@@ -158,8 +158,10 @@ impl<'a> UrlsTable<'a> {
         };
 
         for ancestor in parent.ancestors() {
-            if ancestor == self.root_path {
-                break;
+            if let Some(root_path_parent) = self.root_path.parent() {
+                if ancestor == root_path_parent {
+                    break;
+                }
             }
             if let Err(e) = self.map_urls_from(ancestor) {
                 eprintln!("{e}");
