@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::time::{Duration, Instant};
 
 use crate::utils::{FILE_SVG_ICON, FOLDER_SVG_ICON, PAGE_TEMPLATE};
 
@@ -42,7 +43,7 @@ impl<'a> UrlsTable<'a> {
 
             self.table
                 .entry(mapped_url)
-                .or_insert(UrlEntry::new(entry_fs_path, None, None));
+                .or_insert(UrlEntry::new(entry_fs_path, None));
         }
         let mapped_root_url = self.fs_path_to_url(path);
 
@@ -50,13 +51,13 @@ impl<'a> UrlsTable<'a> {
             return Ok(());
         }
         // If path not contains `index.html` file build a directory listing page for it
+        let entry_cache = EntryCache::new(
+            self.build_directory_listing_page(path),
+            String::from("Content-Type: text/html"),
+        );
         self.table.insert(
             mapped_root_url,
-            UrlEntry::new(
-                PathBuf::new(),
-                Some(self.build_directory_listing_page(path)),
-                Some(String::from("Content-Type: text/html")),
-            ),
+            UrlEntry::new(path.to_path_buf(), Some(entry_cache)),
         );
         Ok(())
     }
@@ -140,10 +141,18 @@ impl<'a> UrlsTable<'a> {
         let mut fs_path: Option<PathBuf> = None;
 
         if let Some(url_entry) = self.table.get(requested_url) {
-            if url_entry.cached_content.is_some() || url_entry.fs_path.is_file() {
+            if url_entry.fs_path.is_file() {
                 return;
             }
+
+            if let Some(ref cache) = url_entry.cache {
+                if !cache.is_expired() {
+                    return;
+                }
+            }
             fs_path = Some(url_entry.fs_path.clone());
+            // FIXME: Remove all old urls mapped from `url_entry.fs_path` to prevent
+            //        displaying the url of deleted file or directory
             self.table.remove(requested_url);
         }
         let fs_path = fs_path.unwrap_or(self.url_to_fs_path(requested_url));
@@ -181,20 +190,35 @@ impl<'a> UrlsTable<'a> {
 #[derive(Debug, Clone)]
 pub struct UrlEntry {
     pub fs_path: PathBuf,
-    pub cached_content: Option<Vec<u8>>,
-    pub content_type: Option<String>,
+    pub cache: Option<EntryCache>,
 }
 
 impl UrlEntry {
-    pub fn new(
-        fs_path: PathBuf,
-        cached_content: Option<Vec<u8>>,
-        content_type: Option<String>,
-    ) -> Self {
+    pub fn new(fs_path: PathBuf, cache: Option<EntryCache>) -> Self {
+        Self { fs_path, cache }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct EntryCache {
+    created_time: Instant,
+    pub content: Vec<u8>,
+    pub content_type: String,
+}
+
+impl EntryCache {
+    pub fn new(content: Vec<u8>, content_type: String) -> Self {
         Self {
-            fs_path,
-            cached_content,
+            created_time: Instant::now(),
+            content,
             content_type,
         }
+    }
+
+    pub fn is_expired(&self) -> bool {
+        // TODO: Change it to actual two minutes (i.e 102 seconds)
+        //       when cache handling is fixed for directory listing page
+        let two_min = Duration::from_secs(10);
+        self.created_time.elapsed() >= two_min
     }
 }

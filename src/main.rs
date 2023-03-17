@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use crate::mime_types::MimeTypes;
-use crate::urls_table::UrlsTable;
+use crate::urls_table::{EntryCache, UrlsTable};
 
 use tiny_http::{Header, Request, Response, Server};
 
@@ -94,13 +94,13 @@ fn handle_request(
         }
     };
 
-    if let (Some(cached_content), Some(content_type)) =
-        (&url_entry.cached_content, &url_entry.content_type)
-    {
-        // FIXME: Avoid cloning cached content
-        let res = Response::from_data(cached_content.clone())
-            .with_header(Header::from_str(content_type).unwrap());
-        return request.respond(res);
+    if let Some(ref cache) = url_entry.cache {
+        if !cache.is_expired() {
+            // FIXME: Avoid cloning cached content
+            let res = Response::from_data(cache.content.clone())
+                .with_header(Header::from_str(&cache.content_type).unwrap());
+            return request.respond(res);
+        }
     }
 
     let content = fs::read(&url_entry.fs_path)?;
@@ -112,9 +112,8 @@ fn handle_request(
         Response::from_data(content.clone()).with_header(Header::from_str(&content_type).unwrap()),
     )?;
 
-    // Update the url entry
-    url_entry.cached_content = Some(content);
-    url_entry.content_type = Some(content_type);
+    // Update or set cache
+    url_entry.cache = Some(EntryCache::new(content, content_type));
     Ok(())
 }
 
