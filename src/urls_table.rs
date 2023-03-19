@@ -39,7 +39,6 @@ impl<'a> UrlsTable<'a> {
             let dir_entry = dir_entry.unwrap();
             let entry_fs_path = dir_entry.path();
             let mapped_url = self.fs_path_to_url(&entry_fs_path);
-            dbg!(&mapped_url);
 
             self.table
                 .entry(mapped_url)
@@ -63,8 +62,6 @@ impl<'a> UrlsTable<'a> {
     }
 
     fn fs_path_to_url(&self, fs_path: &Path) -> String {
-        dbg!(self.root_path, fs_path);
-
         if fs_path == self.root_path {
             return String::from("/");
         }

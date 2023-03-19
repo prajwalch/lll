@@ -68,8 +68,6 @@ fn handle_request(
     println!("{:?}: {}", request.method(), request.url());
 
     let mut requested_url = normalize_url(request.url());
-    dbg!(&requested_url);
-
     let url_entry = match urls_table.get_url_entry_mut(&requested_url) {
         Some(entry) => entry,
         None => {
