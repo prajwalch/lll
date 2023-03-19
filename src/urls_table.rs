@@ -82,6 +82,7 @@ impl<'a> UrlsTable<'a> {
         });
 
         let url_path = if fs_path.is_dir() {
+            // Add trailing slash to it
             basename.push('/');
             basename
         } else if basename == "index.html" {
