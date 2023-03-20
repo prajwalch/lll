@@ -94,7 +94,6 @@ fn handle_request(
 
     if let Some(ref cache) = url_entry.cache {
         if !cache.is_expired() {
-            // FIXME: Avoid cloning cached content
             let res = Response::from_data(cache.content.clone())
                 .with_header(Header::from_str(&cache.content_type).unwrap());
             return request.respond(res);
@@ -105,7 +104,6 @@ fn handle_request(
     let content_type =
         mime_types.get_content_type(url_entry.fs_path.extension().unwrap_or("default".as_ref()));
 
-    // FIXME: Avoid cloning content
     request.respond(
         Response::from_data(content.clone()).with_header(Header::from_str(&content_type).unwrap()),
     )?;
