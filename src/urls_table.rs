@@ -121,9 +121,7 @@ impl<'a> UrlsTable<'a> {
                     FILE_SVG_ICON
                 };
                 let basename = url_entry.fs_path.file_name().unwrap().to_string_lossy();
-                let inner_text = format!("{icon} {basename}");
-
-                format!(r#"<li><a href="{mapped_url}">{inner_text}</a></li>"#)
+                format!(r#"<li><a href="{mapped_url}">{icon} {basename}</a></li>"#)
             })
             .collect::<String>();
 
