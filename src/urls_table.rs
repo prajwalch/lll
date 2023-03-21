@@ -103,14 +103,18 @@ impl<'a> UrlsTable<'a> {
     }
 
     fn build_directory_listing_page(&self, path: &Path) -> Vec<u8> {
-        let file_list_urls = self
+        let mut matched_entries = self
             .table
             .iter()
-            .filter_map(|(mapped_url, url_entry)| {
-                if url_entry.fs_path.parent()? != path {
-                    return None;
-                }
+            .filter(|(_, url_entry)| url_entry.fs_path.parent().map_or(false, |p| p == path))
+            .collect::<Vec<(&String, &UrlEntry)>>();
 
+        // Sort the entries so that directories shows first and then files
+        matched_entries.sort_by_cached_key(|(_, url_entry)| url_entry.fs_path.is_file());
+
+        let file_list_urls = matched_entries
+            .iter()
+            .map(|(mapped_url, url_entry)| {
                 let icon = if url_entry.fs_path.is_dir() {
                     FOLDER_SVG_ICON
                 } else {
@@ -119,9 +123,7 @@ impl<'a> UrlsTable<'a> {
                 let basename = url_entry.fs_path.file_name().unwrap().to_string_lossy();
                 let inner_text = format!("{icon} {basename}");
 
-                Some(format!(
-                    r#"<li><a href="{mapped_url}">{inner_text}</a></li>"#
-                ))
+                format!(r#"<li><a href="{mapped_url}">{inner_text}</a></li>"#)
             })
             .collect::<String>();
 
