@@ -125,7 +125,7 @@ impl<'a> UrlsTable<'a> {
             })
             .collect::<String>();
 
-        let mut content = format!("<h1>Directory Listing for {url}</h1><ul>",);
+        let mut content = format!("<h1>Directory Listing for {url}</h1><ul>");
         content.push_str(&entries_hyperlinks);
         content.push_str("</ul>");
 
