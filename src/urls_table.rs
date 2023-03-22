@@ -130,7 +130,7 @@ impl<'a> UrlsTable<'a> {
         content.push_str("</ul>");
 
         PAGE_TEMPLATE
-            .replace("{title}", "Directory Listing for")
+            .replace("{title}", "Directory Listing")
             .replace("{content}", &content)
             .into_bytes()
     }
