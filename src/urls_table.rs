@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
-use crate::utils::{FILE_SVG_ICON, FOLDER_SVG_ICON, PAGE_TEMPLATE};
+use crate::common::{FILE_SVG_ICON, FOLDER_SVG_ICON, PAGE_TEMPLATE};
 
 pub struct UrlsTable<'a> {
     root_path: &'a Path,

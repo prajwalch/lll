@@ -1,6 +1,6 @@
+mod common;
 mod mime_types;
 mod urls_table;
-mod utils;
 
 use std::env;
 use std::error::Error;
@@ -71,7 +71,7 @@ fn handle_request(
     let url_entry = match urls_table.get_url_entry_mut(&requested_url) {
         Some(entry) => entry,
         None => {
-            let response = Response::from_string(utils::build_not_found_page())
+            let response = Response::from_string(common::build_not_found_page())
                 .with_header(Header::from_str(&mime_types.get_content_type("html")).unwrap());
 
             // Put a trailing slash to url if not present and response `301 Moved Permanently`
