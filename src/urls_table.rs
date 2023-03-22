@@ -112,7 +112,7 @@ impl<'a> UrlsTable<'a> {
         // Sort the entries so that directories shows first and then files
         matched_entries.sort_by_cached_key(|(_, url_entry)| url_entry.fs_path.is_file());
 
-        let file_list_urls = matched_entries
+        let entries_hyperlinks = matched_entries
             .iter()
             .map(|(mapped_url, url_entry)| {
                 let icon = if url_entry.fs_path.is_dir() {
@@ -126,7 +126,7 @@ impl<'a> UrlsTable<'a> {
             .collect::<String>();
 
         let mut content = format!("<h1>Directory Listing for {url}</h1><ul>",);
-        content.push_str(&file_list_urls);
+        content.push_str(&entries_hyperlinks);
         content.push_str("</ul>");
 
         PAGE_TEMPLATE
