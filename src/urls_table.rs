@@ -51,7 +51,7 @@ impl<'a> UrlsTable<'a> {
         }
         // If path not contains `index.html` file build a directory listing page for it
         let entry_cache = EntryCache::new(
-            self.build_directory_listing_page(path),
+            self.build_directory_listing_page(&mapped_root_url, path),
             String::from("Content-Type: text/html"),
         );
         self.table.insert(
@@ -102,11 +102,11 @@ impl<'a> UrlsTable<'a> {
         format!("/{parent}/{url_path}")
     }
 
-    fn build_directory_listing_page(&self, path: &Path) -> Vec<u8> {
+    fn build_directory_listing_page(&self, url: &str, dir_path: &Path) -> Vec<u8> {
         let mut matched_entries = self
             .table
             .iter()
-            .filter(|(_, url_entry)| url_entry.fs_path.parent().map_or(false, |p| p == path))
+            .filter(|(_, url_entry)| url_entry.fs_path.parent().map_or(false, |p| p == dir_path))
             .collect::<Vec<(&String, &UrlEntry)>>();
 
         // Sort the entries so that directories shows first and then files
@@ -125,12 +125,12 @@ impl<'a> UrlsTable<'a> {
             })
             .collect::<String>();
 
-        let mut content = String::from("<h1>Directory Listing</h1><ul>");
+        let mut content = format!("<h1>Directory Listing for {url}</h1><ul>",);
         content.push_str(&file_list_urls);
         content.push_str("</ul>");
 
         PAGE_TEMPLATE
-            .replace("{title}", "Directory Listing")
+            .replace("{title}", "Directory Listing for")
             .replace("{content}", &content)
             .into_bytes()
     }
