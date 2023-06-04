@@ -1,5 +1,5 @@
 # lll
-llll is a simple local http server. I mainly built this tool to learn more about [Rust](https://rust-lang.org) but it is perfectly usable when you need to serve files locally without any configuration.
+lll is a simple local http server for serving files quickly.
 
 ## Building and running
 Make sure you installed and setup the [rust toolchain](https://www.rust-lang.org/tools/install) first.
