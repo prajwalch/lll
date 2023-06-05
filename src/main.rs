@@ -24,6 +24,7 @@ fn main() {
         },
         PathBuf::from,
     );
+    let path = path.canonicalize().unwrap_or(path);
 
     if !path.is_dir() {
         eprintln!("Please provide a directory to serve");
