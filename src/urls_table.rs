@@ -65,41 +65,22 @@ impl<'a> UrlsTable<'a> {
         if fs_path == self.root_path {
             return String::from("/");
         }
-
-        let parent = if let Some(parent) = fs_path.parent() {
-            if parent == Path::new("") {
-                Path::new(".")
-            } else {
-                parent
-            }
-        } else {
-            return String::from("/");
-        };
-
-        let parent_is_root_path = parent == self.root_path;
-        let mut basename = fs_path.file_name().map_or(String::new(), |file_name| {
-            file_name.to_string_lossy().to_string()
-        });
-
-        let url_path = if fs_path.is_dir() {
-            // Add trailing slash to it
-            basename.push('/');
-            basename
-        } else if basename == "index.html" {
-            String::new()
-        } else {
-            basename
-        };
-
-        if parent_is_root_path {
-            return format!("/{url_path}");
-        }
-        let parent = parent
+        let child_path_name = fs_path
             .strip_prefix(self.root_path)
-            .unwrap()
-            .to_string_lossy();
+            .map(|child_path| child_path.to_string_lossy())
+            .unwrap();
+        let child_path_name = child_path_name
+            .strip_suffix("index.html")
+            .unwrap_or(&child_path_name);
 
-        format!("/{parent}/{url_path}")
+        let mut url = String::from('/');
+        url.push_str(child_path_name);
+
+        // Add a trailing slash `/` at the end of url for directory
+        if fs_path.is_dir() {
+            url.push('/');
+        }
+        url
     }
 
     fn build_directory_listing_page(&self, url: &str, dir_path: &Path) -> Vec<u8> {
