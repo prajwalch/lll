@@ -136,24 +136,19 @@ impl<'a> UrlsTable<'a> {
 
             fs_path = Some(requested_path);
         }
-        let fs_path = fs_path.unwrap_or(self.url_to_fs_path(requested_url));
-
+        let fs_path = fs_path.unwrap_or_else(|| self.url_to_fs_path(requested_url));
         if !fs_path.exists() {
             return;
         }
-        let parent = if fs_path.is_file() {
+
+        let fs_path = if fs_path.is_file() && fs_path.parent().is_some_and(|p| p != self.root_path)
+        {
             fs_path.parent().unwrap().to_path_buf()
         } else {
             fs_path
         };
-
-        for ancestor in parent.ancestors() {
-            if self.root_path.parent().is_some_and(|p| p == ancestor) {
-                break;
-            }
-            if let Err(e) = self.map_urls_from(ancestor) {
-                eprintln!("{e}");
-            }
+        if let Err(e) = self.map_urls_from(&fs_path) {
+            eprintln!("{e}");
         }
     }
 
