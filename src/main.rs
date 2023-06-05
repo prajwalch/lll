@@ -17,11 +17,8 @@ use tiny_http::{Header, Request, Response, Server};
 const DEFAULT_PORT: u16 = 2058;
 
 fn main() {
-    let path = env::args().nth(1).map_or_else(
-        || {
-            eprintln!("Path is not provided, serving current directory");
-            env::current_dir().unwrap_or(PathBuf::from("."))
-        },
+    let path = env::args().nth(1).map_or(
+        env::current_dir().unwrap_or(PathBuf::from(".")),
         PathBuf::from,
     );
     let path = path.canonicalize().unwrap_or(path);
@@ -30,6 +27,7 @@ fn main() {
         eprintln!("Please provide a directory to serve");
         return;
     }
+    println!("Serving {path:?} directory");
 
     let port: u16 = env::var_os("LPORT").map_or(DEFAULT_PORT, |given_port| {
         given_port.to_string_lossy().parse().unwrap_or_else(|_| {
