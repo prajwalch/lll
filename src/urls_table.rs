@@ -44,12 +44,12 @@ impl<'a> UrlsTable<'a> {
                 .entry(mapped_url)
                 .or_insert(UrlEntry::new(entry_fs_path, None));
         }
+        let mapped_root_url = self.fs_path_to_url(path);
 
-        if path.with_file_name("index.html").exists() {
+        if self.table.contains_key(&mapped_root_url) {
             return Ok(());
         }
         // If path not contains `index.html` file build a directory listing page for it
-        let mapped_root_url = self.fs_path_to_url(path);
         let entry_cache = EntryCache::new(
             self.build_directory_listing_page(&mapped_root_url, path),
             String::from("Content-Type: text/html"),
