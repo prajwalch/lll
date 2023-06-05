@@ -125,15 +125,16 @@ impl<'a> UrlsTable<'a> {
             {
                 return;
             }
-            let parent = url_entry.fs_path.clone();
+            let requested_path = url_entry.fs_path.clone();
 
             self.table.remove(requested_url);
             // To prevent displaying the deleted file or directory in listing page, remove all urls
-            // mapped from `parent` by keeping only the urls whose parent directory is not `parent`
+            // previously mapped from `requested_path` by keeping only the urls whose equivalent
+            // fs_path's parent is not `requested_path`.
             self.table
-                .retain(|_, entry| entry.fs_path.parent().map_or(true, |p| p != parent));
+                .retain(|_, entry| entry.fs_path.parent().map_or(true, |p| p != requested_path));
 
-            fs_path = Some(parent);
+            fs_path = Some(requested_path);
         }
         let fs_path = fs_path.unwrap_or(self.url_to_fs_path(requested_url));
 
