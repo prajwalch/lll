@@ -120,11 +120,9 @@ impl<'a> UrlsTable<'a> {
         let mut fs_path: Option<PathBuf> = None;
 
         if let Some(url_entry) = self.table.get(requested_url) {
-            if url_entry.fs_path.is_file() {
-                return;
-            }
-
-            if url_entry.cache.as_ref().is_some_and(|c| !c.is_expired()) {
+            if url_entry.fs_path.is_file()
+                || url_entry.cache.as_ref().is_some_and(|c| !c.is_expired())
+            {
                 return;
             }
             let parent = url_entry.fs_path.clone();
