@@ -124,10 +124,8 @@ impl<'a> UrlsTable<'a> {
                 return;
             }
 
-            if let Some(ref cache) = url_entry.cache {
-                if !cache.is_expired() {
-                    return;
-                }
+            if url_entry.cache.as_ref().is_some_and(|c| !c.is_expired()) {
+                return;
             }
             let parent = url_entry.fs_path.clone();
 
@@ -151,10 +149,8 @@ impl<'a> UrlsTable<'a> {
         };
 
         for ancestor in parent.ancestors() {
-            if let Some(root_path_parent) = self.root_path.parent() {
-                if ancestor == root_path_parent {
-                    break;
-                }
+            if self.root_path.parent().is_some_and(|p| p == ancestor) {
+                break;
             }
             if let Err(e) = self.map_urls_from(ancestor) {
                 eprintln!("{e}");
