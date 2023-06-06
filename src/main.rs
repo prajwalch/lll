@@ -113,8 +113,16 @@ fn handle_request(
 }
 
 fn normalize_url(requested_url: &str) -> String {
-    if requested_url == "/" {
-        return requested_url.to_string();
-    }
-    requested_url.trim_end_matches("index.html").to_string()
+    let mut normalized_url = String::from('/');
+
+    // Split the url into many components, skip which we don't want and use the rest to make
+    // full normalized url.
+    //
+    // A component roughly corresponds to a each path of url with trailing slash (/) and query parameter.
+    // Example: /one/two/index.html     -> [/, one/, two/, index.html]
+    //          /one/two/?search=hello  -> [/, one/, two/, ?search=hello]
+    normalized_url.extend(requested_url.split_inclusive('/').filter(|component| {
+        *component != "/" && *component != "index.html" && !component.starts_with('?')
+    }));
+    normalized_url
 }
