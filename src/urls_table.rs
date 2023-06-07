@@ -18,13 +18,13 @@ impl<'a> UrlsTable<'a> {
         }
     }
 
-    pub fn get_url_entry_mut(&mut self, requested_url: &str) -> Option<&mut UrlEntry> {
-        self.update_table_if_needed(requested_url);
-        self.table.get_mut(requested_url)
+    pub fn get_url_entry_mut(&mut self, url: &str) -> Option<&mut UrlEntry> {
+        self.update_table_if_needed(url);
+        self.table.get_mut(url)
     }
 
-    pub fn contains_url_entry(&self, requested_url: &str) -> bool {
-        self.table.contains_key(requested_url)
+    pub fn contains_url_entry(&self, url: &str) -> bool {
+        self.table.contains_key(url)
     }
 
     fn map_urls_from(&mut self, path: &Path) -> Result<(), String> {
@@ -110,8 +110,8 @@ impl<'a> UrlsTable<'a> {
             .into_bytes()
     }
 
-    fn update_table_if_needed(&mut self, requested_url: &str) {
-        if let Some(url_entry) = self.table.get(requested_url) {
+    fn update_table_if_needed(&mut self, url: &str) {
+        if let Some(url_entry) = self.table.get(url) {
             if url_entry.fs_path.is_file()
                 || url_entry.cache.as_ref().is_some_and(|c| !c.is_expired())
             {
@@ -120,7 +120,7 @@ impl<'a> UrlsTable<'a> {
             // FIXME: Clone is un-necessary here, but required to use inside `retain` function.
             //        Figure out solution to fix this.
             let requested_path = url_entry.fs_path.clone();
-            self.table.remove(requested_url);
+            self.table.remove(url);
             // To prevent displaying the deleted file or directory in listing page, remove all urls
             // previously mapped from `requested_path` by keeping only the urls whose equivalent
             // fs_path's parent is not `requested_path`.
@@ -134,7 +134,7 @@ impl<'a> UrlsTable<'a> {
             return;
         }
 
-        let url_fs_path = self.url_to_fs_path(requested_url);
+        let url_fs_path = self.url_to_fs_path(url);
         if !url_fs_path.exists() {
             return;
         }
@@ -151,11 +151,11 @@ impl<'a> UrlsTable<'a> {
         }
     }
 
-    fn url_to_fs_path(&self, requested_url: &str) -> PathBuf {
-        if let Some(url_entry) = self.table.get(requested_url) {
+    fn url_to_fs_path(&self, url: &str) -> PathBuf {
+        if let Some(url_entry) = self.table.get(url) {
             return url_entry.fs_path.clone();
         }
-        self.root_path.join(requested_url.trim_start_matches('/'))
+        self.root_path.join(url.trim_start_matches('/'))
     }
 }
 
