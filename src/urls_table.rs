@@ -66,14 +66,10 @@ impl<'a> UrlsTable<'a> {
         if fs_path == self.root_path {
             return String::from("/");
         }
-        let child_path_name = fs_path
-            .strip_prefix(self.root_path)
-            .map(|child_path| child_path.to_string_lossy())
-            .unwrap();
-
-        let mut url = normalize_url(&child_path_name);
+        let child_path = fs_path.strip_prefix(self.root_path).unwrap();
+        let mut url = normalize_url(&child_path.to_string_lossy());
         // Add a trailing slash `/` at the end of url for directory
-        if fs_path.is_dir() {
+        if child_path.is_dir() {
             url.push('/');
         }
         url
