@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use crate::common::{FILE_SVG_ICON, FOLDER_SVG_ICON, PAGE_TEMPLATE};
+use crate::normalize_url;
 
 pub struct UrlsTable<'a> {
     root_path: &'a Path,
@@ -69,13 +70,8 @@ impl<'a> UrlsTable<'a> {
             .strip_prefix(self.root_path)
             .map(|child_path| child_path.to_string_lossy())
             .unwrap();
-        let child_path_name = child_path_name
-            .strip_suffix("index.html")
-            .unwrap_or(&child_path_name);
 
-        let mut url = String::from('/');
-        url.push_str(child_path_name);
-
+        let mut url = normalize_url(&child_path_name);
         // Add a trailing slash `/` at the end of url for directory
         if fs_path.is_dir() {
             url.push('/');
