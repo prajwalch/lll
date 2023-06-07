@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::io;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
@@ -27,14 +28,9 @@ impl UrlsTable {
         self.table.contains_key(url)
     }
 
-    fn map_urls_from(&mut self, path: &Path) -> Result<(), String> {
-        let dir_entries = path
-            .read_dir()
-            .map_err(|err| format!("Unable to map urls from `{}`: {}", path.display(), err))?;
-
-        for dir_entry in dir_entries {
-            let dir_entry = dir_entry.unwrap();
-            let entry_fs_path = dir_entry.path();
+    fn map_urls_from(&mut self, path: &Path) -> io::Result<()> {
+        for dir_entry in path.read_dir()? {
+            let entry_fs_path = dir_entry?.path();
             let mapped_url = self.fs_path_to_url(&entry_fs_path);
 
             self.table
