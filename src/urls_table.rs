@@ -133,19 +133,20 @@ impl<'a> UrlsTable<'a> {
             }
             return;
         }
-        let fs_path = self.url_to_fs_path(requested_url);
-        if !fs_path.exists() {
+
+        let url_fs_path = self.url_to_fs_path(requested_url);
+        if !url_fs_path.exists() {
             return;
         }
+        let url_fs_path =
+            if url_fs_path.is_file() && url_fs_path.parent().is_some_and(|p| p != self.root_path) {
+                url_fs_path.parent().unwrap().to_path_buf()
+            } else {
+                url_fs_path
+            };
 
-        let fs_path = if fs_path.is_file() && fs_path.parent().is_some_and(|p| p != self.root_path)
-        {
-            fs_path.parent().unwrap().to_path_buf()
-        } else {
-            fs_path
-        };
         // TODO: Propagate the error instead
-        if let Err(e) = self.map_urls_from(&fs_path) {
+        if let Err(e) = self.map_urls_from(&url_fs_path) {
             eprintln!("{e}");
         }
     }
