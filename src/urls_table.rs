@@ -150,8 +150,8 @@ impl<'a> UrlsTable<'a> {
         if let Some(url_entry) = self.table.get(requested_url) {
             return url_entry.fs_path.clone();
         }
-        let root_path = self.root_path.to_path_buf();
-        root_path.join(requested_url.strip_prefix('/').unwrap())
+        self.root_path
+            .join(requested_url.strip_prefix('/').unwrap())
     }
 }
 
