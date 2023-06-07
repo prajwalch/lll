@@ -75,7 +75,7 @@ impl<'a> UrlsTable<'a> {
         let mut matched_entries = self
             .table
             .iter()
-            .filter(|(_, url_entry)| url_entry.fs_path.parent().map_or(false, |p| p == dir_path))
+            .filter(|(_, url_entry)| url_entry.fs_path.parent().is_some_and(|p| p == dir_path))
             .collect::<Vec<(&String, &UrlEntry)>>();
 
         // Sort the entries so that directories shows first and then files
