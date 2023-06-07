@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::io;
+use std::io::{Error, ErrorKind};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
@@ -20,7 +21,7 @@ impl UrlsTable {
     }
 
     pub fn get_url_entry_mut(&mut self, url: &str) -> Option<&mut UrlEntry> {
-        self.update_table_if_needed(url);
+        self.update_table_if_needed(url).ok();
         self.table.get_mut(url)
     }
 
@@ -106,12 +107,12 @@ impl UrlsTable {
             .into_bytes()
     }
 
-    fn update_table_if_needed(&mut self, url: &str) {
+    fn update_table_if_needed(&mut self, url: &str) -> io::Result<()> {
         if let Some(url_entry) = self.table.get(url) {
             if url_entry.fs_path.is_file()
                 || url_entry.cache.as_ref().is_some_and(|c| !c.is_expired())
             {
-                return;
+                return Ok(());
             }
             // FIXME: Clone is un-necessary here, but required to use inside `retain` function.
             //        Figure out solution to fix this.
@@ -123,27 +124,17 @@ impl UrlsTable {
             self.table
                 .retain(|_, entry| entry.fs_path.parent().map_or(true, |p| p != requested_path));
 
-            // TODO: Propagate the error instead
-            if let Err(e) = self.map_urls_from(&requested_path) {
-                eprintln!("{e}");
-            }
-            return;
+            return self.map_urls_from(&requested_path);
         }
-
         let url_fs_path = self.url_to_fs_path(url);
-        if !url_fs_path.exists() {
-            return;
-        }
-        let url_fs_path =
-            if url_fs_path.is_file() && url_fs_path.parent().is_some_and(|p| p != self.root_path) {
-                url_fs_path.parent().unwrap().to_path_buf()
-            } else {
-                url_fs_path
-            };
 
-        // TODO: Propagate the error instead
-        if let Err(e) = self.map_urls_from(&url_fs_path) {
-            eprintln!("{e}");
+        if !url_fs_path.exists() {
+            return Err(Error::from(ErrorKind::NotFound));
+        }
+        if url_fs_path.is_file() && url_fs_path.parent().is_some_and(|p| p != self.root_path) {
+            self.map_urls_from(url_fs_path.parent().unwrap())
+        } else {
+            self.map_urls_from(&url_fs_path)
         }
     }
 
