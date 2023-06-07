@@ -59,7 +59,7 @@ impl UrlsTable {
         if fs_path == self.root_path {
             return String::from("/");
         }
-        let child_path = fs_path.strip_prefix(&self.root_path).unwrap();
+        let child_path = fs_path.strip_prefix(&self.root_path).unwrap_or(fs_path);
         let mut url = normalize_url(&child_path.to_string_lossy());
         // Add a trailing slash `/` at the end of url for directory
         if child_path.is_dir() {
