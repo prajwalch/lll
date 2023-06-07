@@ -12,14 +12,10 @@ pub struct UrlsTable<'a> {
 
 impl<'a> UrlsTable<'a> {
     pub fn new(root_path: &'a Path) -> Self {
-        let mut urls_table = Self {
+        Self {
             root_path,
             table: HashMap::new(),
-        };
-        if let Err(e) = urls_table.map_urls_from(root_path) {
-            eprintln!("{e}");
         }
-        urls_table
     }
 
     pub fn get_url_entry_mut(&mut self, requested_url: &str) -> Option<&mut UrlEntry> {
