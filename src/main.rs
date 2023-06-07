@@ -6,7 +6,7 @@ use std::env;
 use std::error::Error;
 use std::fs;
 use std::io::Error as IoError;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::str::FromStr;
 
 use crate::mime_types::MimeTypes;
