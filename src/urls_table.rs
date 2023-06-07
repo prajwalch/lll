@@ -111,16 +111,15 @@ impl<'a> UrlsTable<'a> {
     }
 
     fn update_table_if_needed(&mut self, requested_url: &str) {
-        let mut fs_path: Option<PathBuf> = None;
-
         if let Some(url_entry) = self.table.get(requested_url) {
             if url_entry.fs_path.is_file()
                 || url_entry.cache.as_ref().is_some_and(|c| !c.is_expired())
             {
                 return;
             }
+            // FIXME: Clone is un-necessary here, but required to use inside `retain` function.
+            //        Figure out solution to fix this.
             let requested_path = url_entry.fs_path.clone();
-
             self.table.remove(requested_url);
             // To prevent displaying the deleted file or directory in listing page, remove all urls
             // previously mapped from `requested_path` by keeping only the urls whose equivalent
@@ -128,9 +127,13 @@ impl<'a> UrlsTable<'a> {
             self.table
                 .retain(|_, entry| entry.fs_path.parent().map_or(true, |p| p != requested_path));
 
-            fs_path = Some(requested_path);
+            // TODO: Propagate the error instead
+            if let Err(e) = self.map_urls_from(&requested_path) {
+                eprintln!("{e}");
+            }
+            return;
         }
-        let fs_path = fs_path.unwrap_or_else(|| self.url_to_fs_path(requested_url));
+        let fs_path = self.url_to_fs_path(requested_url);
         if !fs_path.exists() {
             return;
         }
@@ -141,6 +144,7 @@ impl<'a> UrlsTable<'a> {
         } else {
             fs_path
         };
+        // TODO: Propagate the error instead
         if let Err(e) = self.map_urls_from(&fs_path) {
             eprintln!("{e}");
         }
