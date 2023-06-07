@@ -5,13 +5,13 @@ use std::time::{Duration, Instant};
 use crate::common::{FILE_SVG_ICON, FOLDER_SVG_ICON, PAGE_TEMPLATE};
 use crate::normalize_url;
 
-pub struct UrlsTable<'a> {
-    root_path: &'a Path,
+pub struct UrlsTable {
+    root_path: PathBuf,
     table: HashMap<String, UrlEntry>,
 }
 
-impl<'a> UrlsTable<'a> {
-    pub fn new(root_path: &'a Path) -> Self {
+impl UrlsTable {
+    pub fn new(root_path: PathBuf) -> Self {
         Self {
             root_path,
             table: HashMap::new(),
@@ -62,7 +62,7 @@ impl<'a> UrlsTable<'a> {
         if fs_path == self.root_path {
             return String::from("/");
         }
-        let child_path = fs_path.strip_prefix(self.root_path).unwrap();
+        let child_path = fs_path.strip_prefix(&self.root_path).unwrap();
         let mut url = normalize_url(&child_path.to_string_lossy());
         // Add a trailing slash `/` at the end of url for directory
         if child_path.is_dir() {

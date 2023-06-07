@@ -36,7 +36,7 @@ fn main() {
         })
     });
 
-    if let Err(e) = start_server(port, &path) {
+    if let Err(e) = start_server(port, path) {
         eprintln!("Internal error: {e}");
 
         #[cfg(debug_assertions)]
@@ -46,7 +46,10 @@ fn main() {
     }
 }
 
-fn start_server(port: u16, root_path: &Path) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
+fn start_server(
+    port: u16,
+    root_path: PathBuf,
+) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
     let server = Server::http(("127.0.0.1", port))?;
     println!("Listening at `http://{}`", server.server_addr());
 
