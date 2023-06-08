@@ -115,7 +115,7 @@ jobs:
         
         # Ex: .tar.xz or .zip (windows)
         PKG_EXTENSION=".tar.xz"
-        case ${{ matrix.jos.os }} in
+        case ${{ matrix.jos.target }} in
           *-pc-windows-*) PKG_EXTENSION=".zip" ;;
         esac;
         
