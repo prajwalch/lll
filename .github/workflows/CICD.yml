@@ -9,7 +9,6 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  RUSTFLAGS: '-C target-feature=+crt-static'
 
 jobs:
   crate_metadata:
@@ -63,6 +62,7 @@ jobs:
           - { target: x86_64-unknown-linux-gnu      , os: ubuntu-latest   , use-cross: true }
           - { target: x86_64-unknown-linux-musl     , os: ubuntu-latest   , use-cross: true }
     env:
+      RUSTFLAGS: '-C target-feature=+crt-static'
       BUILD_CMD: cargo
     steps:
     - name: Checkout branch
@@ -86,6 +86,10 @@ jobs:
       uses: taiki-e/install-action@v2.4.2
       with:
         tool: cross
+        
+    - name: Remove RUSTFLAS for `aarch64-unknown-linux-gnu`
+      if: ${{ matrix.job.target == 'aarch64-unknown-linux-gnu' }}
+      run: echo "RUSTFLAGS=" >> $GITHUB_ENV
     
     - name: Change build command env to cross if needed
       if: matrix.job.use-cross
