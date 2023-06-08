@@ -1,9 +1,11 @@
 [![CICD](https://github.com/PrajwalCH/lll/actions/workflows/CICD.yml/badge.svg?branch=main)](https://github.com/PrajwalCH/lll/actions/workflows/CICD.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 # lll
+
 lll is a simple local http server for serving files quickly.
 
 ## Building and running
+
 Make sure you installed and setup the [rust toolchain](https://www.rust-lang.org/tools/install) first.
 
 1. Clone this repo `git clone http://github.com/PrajwalCH/lll`
