@@ -1,0 +1,157 @@
+name: CICD
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  crate_metadata:
+    name: Extract crate metadata
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout branch
+      uses: actions/checkout@v3
+      
+    - name: Extract crate information
+      id: crate_metadata
+      run: |
+        echo "name=lll" | tee -a $GITHUB_OUTPUT
+        cargo metadata --no-deps --format-version 1 | jq -r '"version=" + .package[0].version' | tee -a $GITHUB_OUTPUT
+    outputs:
+        name: ${{ steps.crate_metadata.outputs.name }}
+        version: ${{ steps.crate_metadata.outputs.version }}
+        
+  run_cargo_fmt:
+    name: Install rustfmt toolchain
+    runs-on: ubuntu-latest
+    steps:
+    - uses: dtolnay/rust-toolchain@v1
+      with:
+        components: rustfmt
+        
+    - name: Checkout branch
+      uses: actions/checkout@v3
+    
+    - run: cargo fmt -- --check
+    
+  build:
+    name: ${{ matrix.job.target }} (${{ matrix.job.os }})
+    runs-on: ${{ matrix.job.os }}
+    needs: crate_metadata
+    strategy:
+      fail-fast: true
+      matrix:
+        job:
+          - { target: aarch64-pc-windows-msvc       , os: windows-latest                    }
+          - { target: aarch64-unknown-linux-gnu     , os: ubuntu-latest   , use-cross: true }
+          - { target: arm-linux-androideabi         , os: ubuntu-latest   , use-cross: true }
+          - { target: arm-unknown-linux-gnueabihf   , os: ubuntu-latest   , use-cross: true }
+          - { target: arm-unknown-linux-musleabihf  , os: ubuntu-latest   , use-cross: true }
+          - { target: armv7-linux-androideabi       , os: ubuntu-latest   , use-cross: true }
+          - { target: i686-pc-windows-gnu           , os: windows-latest                    }
+          - { target: i686-pc-windows-msvc          , os: windows-latest                    }
+          - { target: i686-unknown-linux-gnu        , os: ubuntu-latest   , use-cross: true }
+          - { target: i686-unknown-linux-musl       , os: ubuntu-latest   , use-cross: true }
+          - { target: x86_64-linux-android          , os: ubuntu-latest   , use-cross: true }
+          - { target: x86_64-pc-windows-gnu         , os: windows-latest                    }
+          - { target: x86_64-pc-windows-msvc        , os: windows-latest                    }
+          - { target: x86_64-unknown-linux-gnu      , os: ubuntu-latest   , use-cross: true }
+          - { target: x86_64-unknown-linux-musl     , os: ubuntu-latest   , use-cross: true }
+    env:
+      BUILD_CMD: cargo
+    steps:
+    - name: Checkout branch
+      uses: actions/checkout@v3
+      
+    - name: Install rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: ${{ matrix.job.target }}
+        
+    - name: Install cross if needed
+      if: matrix.job.use-cross
+      uses: taiki-e/install-action@v2.4.2
+      with:
+        tool: cross
+    
+    - name: Change build command env to cross if needed
+      if: matrix.job.use-cross
+      shell: bash
+      run: echo "BUILD_CMD=cross" >> $GITHUB_ENV
+      
+    - name: Build
+      shell: bash
+      run: $BUILD_CMD build --locked --release --target=${{ matrix.job.os }}
+      
+    - name: Set binary name & path
+      id: bin
+      shell: bash
+      run: |
+        EXE_SUFFIX=""
+        case ${{ matrix.job.os }} in
+          *-pc-windows-*) EXE_SUFFIX=".exe" ;;
+        esac;
+        
+        BIN_NAME="${{ needs.crate_metadata.outputs.name }}${EXE_SUFFIX}"
+        BIN_PATH="target/${{ matrix.job.target }}/release/${BIN_NAME}"
+        
+        echo "BIN_NAME=${BIN_NAME}" >> $GITHUB_OUTPUT
+        echo "BIN_PATH=${BIN_PATH}" >> $GITHUB_OUTPUT
+        
+    - name: Create tarball
+      id: package
+      shell: bash
+      run: |
+        # Ex: lll-v0.1.0-x86_64-unknown-linux-gnu
+        PKG_BASENAME="${{ needes.crate_metadata.outputs.name }}-v${{ needs.crate_metadata.outputs.version }}-${{ matrix.jobs.target }}"
+        
+        # Ex: .tar.xz or .zip (windows)
+        PKG_EXTENSION=".tar.xz"
+        case ${{ matrix.jos.os }} in
+          *-pc-windows-*) PKG_EXTENSION=".zip" ;;
+        esac;
+        
+        # Ex: lll-v0.1.0-x86_64-unknown-linux-gnu.tar.xz
+        PKG_NAME=${PKG_BASENAME}${PKG_EXTENSION}
+        echo "PKG_NAME=${PKG_NAME}" >> $GITHUB_OUTPUT
+        
+        # This dir contains $PKG_NAME (Ex: _package/lll-v0.1.0-x86_64-unknown-linux-gnu)
+        PKG_STAGING="_package"
+        ARCHIVE_DIR="${PKG_STAGING}/${PKG_BASENAME}"
+        
+        # Make a dir to put binary and other stuffs like LICENSE
+        mkdir -p "${ARCHIVE_DIR}"
+        
+        # Copy binary
+        cp "${{ steps.bin.outpus.BIN_PATH }}" "${ARCHIVE_DIR}"
+
+        # Copy README
+        cp "README.md" "${ARCHIVE_DIR}"
+        
+        # Copy LICENSE
+        cp "LICENSE" "${ARCHIVE_DIR}"
+        
+        # Create tarball
+        cd "${PKG_STAGING}"
+        tar -cvf "${PKG_NAME}" "${PKG_BASENAME}"
+        
+        # For debug purpose
+        ls
+        
+        # Leave the _package dir
+        cd ..
+        
+        echo "PKG_PATH=${PKG_STAGING}/${PKG_NAME}" >> $GITHUB_OUTPUT
+        
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v3.1.2
+      with:
+        name: ${{ stages.package.PKG_NAME }}
+        path: ${{ stages.package.PKG_PATH }}
