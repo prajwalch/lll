@@ -9,6 +9,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  RUSTFLAGS: '-C target-feature=+crt-static'
 
 jobs:
   crate_metadata:
