@@ -3,6 +3,7 @@ name: CICD
 on:
   push:
     branches: [ "main" ]
+    tags: '*'
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
@@ -165,3 +166,8 @@ jobs:
       with:
         name: ${{ steps.package.outputs.PKG_NAME }}
         path: ${{ steps.package.outputs.PKG_PATH }}
+    
+    - name: Release new version with packages if new tag is pushed
+      uses: softprops/action-gh-release@v1
+      with:
+        files: ${{ steps.package.outputs.PKG_PATH }}
