@@ -24,7 +24,6 @@ jobs:
       run: |
         echo "name=lll" | tee -a $GITHUB_OUTPUT
         cargo metadata --no-deps --format-version 1 | jq -r '"version=" + .package[0].version' | tee -a $GITHUB_OUTPUT
-        cargo metadata --no-deps --format-version 1 | jq -r '"msrv"'
     outputs:
         name: ${{ steps.crate_metadata.outputs.name }}
         version: ${{ steps.crate_metadata.outputs.version }}
