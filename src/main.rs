@@ -29,7 +29,7 @@ fn main() {
     }
     println!("Serving {path:?} directory");
 
-    let port: u16 = env::var_os("LPORT").map_or(DEFAULT_PORT, |given_port| {
+    let port: u16 = env::var_os("LLL_PORT").map_or(DEFAULT_PORT, |given_port| {
         given_port.to_string_lossy().parse().unwrap_or_else(|_| {
             eprintln!("Invalid port {given_port:?}, falling back to default `{DEFAULT_PORT}`",);
             DEFAULT_PORT

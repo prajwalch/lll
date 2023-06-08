@@ -11,8 +11,8 @@ Make sure you installed and setup the [rust toolchain](https://www.rust-lang.org
 3. Run `cargo build --release` to build it
 4. Then run `cargo run -- [path]` to start it
 
-By default server runs on `2058` port, if you want to use different port run with `LPORT` enviroment variable.
+By default, server runs on `2058` port, if you want to use different port run with `LLL_PORT` environment variable.
 
 ```bash
-$ LPORT=8080 cargo run -- [path]
+$ LLL_PORT=8080 cargo run -- [path]
 ```
