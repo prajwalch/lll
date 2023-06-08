@@ -46,7 +46,6 @@ jobs:
     runs-on: ${{ matrix.job.os }}
     needs: crate_metadata
     strategy:
-      fail-fast: true
       matrix:
         job:
           - { target: aarch64-pc-windows-msvc       , os: windows-latest                    }
