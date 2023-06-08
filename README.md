@@ -1,3 +1,5 @@
+[![CICD](https://github.com/PrajwalCH/lll/actions/workflows/CICD.yml/badge.svg?branch=main)](https://github.com/PrajwalCH/lll/actions/workflows/CICD.yml)
+
 # lll
 lll is a simple local http server for serving files quickly.
 
