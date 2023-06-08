@@ -110,7 +110,7 @@ jobs:
       shell: bash
       run: |
         # Ex: lll-v0.1.0-x86_64-unknown-linux-gnu
-        PKG_BASENAME="${{ needs.crate_metadata.outputs.name }}-v${{ needs.crate_metadata.outputs.version }}-${{ matrix.jobs.target }}"
+        PKG_BASENAME="${{ needs.crate_metadata.outputs.name }}-v${{ needs.crate_metadata.outputs.version }}-${{ matrix.job.target }}"
         
         # Ex: .tar.xz or .zip (windows)
         PKG_EXTENSION=".tar.xz"
