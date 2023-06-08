@@ -130,7 +130,7 @@ jobs:
         mkdir -p "${ARCHIVE_DIR}"
         
         # Copy binary
-        cp "${{ steps.bin.outpus.BIN_PATH }}" "${ARCHIVE_DIR}"
+        cp "${{ steps.bin.outputs.BIN_PATH }}" "${ARCHIVE_DIR}"
 
         # Copy README
         cp "README.md" "${ARCHIVE_DIR}"
