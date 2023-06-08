@@ -1,4 +1,4 @@
-[![CICD](https://github.com/PrajwalCH/lll/actions/workflows/CICD.yml/badge.svg?branch=main)](https://github.com/PrajwalCH/lll/actions/workflows/CICD.yml)
+[![CICD](https://github.com/PrajwalCH/lll/actions/workflows/CICD.yml/badge.svg?branch=main)](https://github.com/PrajwalCH/lll/actions/workflows/CICD.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 # lll
 lll is a simple local http server for serving files quickly.
@@ -16,6 +16,3 @@ By default server runs on `2058` port, if you want to use different port run wit
 ```bash
 $ LPORT=8080 cargo run -- [path]
 ```
-
-## License
- [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
