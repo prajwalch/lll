@@ -22,4 +22,4 @@ Make sure you installed and setup the [rust toolchain](https://www.rust-lang.org
 1. Clone this repo `git clone http://github.com/PrajwalCH/lll`
 2. Jump to `lll` dir
 3. Run `cargo build --release` to build it
-4. Then run `cargo run -- [path]` to start it
+4. Then run `cargo run -- [options]` or `./target/release/lll [options]` to start it
