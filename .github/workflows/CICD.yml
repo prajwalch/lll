@@ -61,7 +61,7 @@ jobs:
           - { target: x86_64-unknown-linux-gnu, os: ubuntu-latest }
           - { target: x86_64-unknown-linux-musl, os: ubuntu-latest }
     env:
-      PKG_BASENAME: lll-${{ needs.crate_metadata.outputs.version }}-${{ matrix.target }}
+      PKG_BASENAME: lll-v${{ needs.crate_metadata.outputs.version }}-${{ matrix.target }}
     steps:
       - name: Setup | Checkout
         uses: actions/checkout@v3
