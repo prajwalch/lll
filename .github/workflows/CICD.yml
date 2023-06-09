@@ -26,9 +26,24 @@ jobs:
 
       - run: cargo fmt -- --check
 
+  crate_metadata:
+    name: Extract crate metadata
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.metadata.outputs.version }}
+
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v3
+
+      - id: metadata
+        run: |
+          cargo metadata --no-deps --format-version 1 | jq -r '"version=" + .packages[0].version' | tee -a $GITHUB_OUTPUT
+
   build:
     name: ${{ matrix.target }} (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    needs: crate_metadata
     strategy:
       matrix:
         include:
@@ -45,7 +60,8 @@ jobs:
           - { target: x86_64-pc-windows-msvc, os: windows-latest }
           - { target: x86_64-unknown-linux-gnu, os: ubuntu-latest }
           - { target: x86_64-unknown-linux-musl, os: ubuntu-latest }
-
+    env:
+      PKG_BASENAME: lll-${{ needs.crate_metadata.outputs.version }}-${{ matrix.target }}
     steps:
       - name: Setup | Checkout
         uses: actions/checkout@v3
@@ -77,7 +93,7 @@ jobs:
         if: matrix.os == 'windows-latest'
         shell: bash
         run: |
-          ARCHIVE_NAME="lll-${{ matrix.target }}.zip"
+          ARCHIVE_NAME="${{ env.PKG_BASENAME }}.zip"
           7z a $ARCHIVE_NAME target/${{ matrix.target }}/release/lll.exe
           echo "PKG_NAME=$ARCHIVE_NAME" >> $GITHUB_ENV
 
@@ -85,7 +101,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         shell: bash
         run: |
-          ARCHIVE_NAME="lll-${{ matrix.target }}.tar.xz"
+          ARCHIVE_NAME="${{ env.PKG_BASENAME }}.tar.xz"
           tar -cJvf $ARCHIVE_NAME --directory=target/${{ matrix.target }}/release lll
           echo "PKG_NAME=$ARCHIVE_NAME" >> $GITHUB_ENV
 
