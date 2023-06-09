@@ -52,7 +52,7 @@ jobs:
 
       - name: Setup | Set RUSTFLAGS to build static binary
         if: matrix.target != 'aarch64-unknown-linux-gnu'
-        run: echo "RUSTFLAGS='-C target-feature=+crt-static'" >> $GITHUB_ENV
+        run: echo "RUSTFLAGS=-C target-feature=+crt-static" >> $GITHUB_ENV
 
       - name: Setup | Install rust toolchain
         uses: dtolnay/rust-toolchain@stable
