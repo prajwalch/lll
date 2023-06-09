@@ -1,9 +1,13 @@
 [package]
 name = "lll"
 version = "0.1.0"
+authors = ["Prajwal Chapagain <prajwal.chapagain58@gmail.com>"]
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "A simple local http server for serving files quickly!!"
+readme = "README.md"
+homepage = "https://github.com/PrajwalCH/lll"
+repository = "https://github.com/PrajwalCH/lll"
+license = "MIT"
 
 [dependencies]
 getopts = "0.2.21"
