@@ -75,27 +75,25 @@ jobs:
 
       - name: Post build | Prepare artifact [windows]
         if: matrix.os == 'windows-latest'
-        id: artifact
         shell: bash
         run: |
           ARCHIVE_NAME="lll-${{ matrix.target }}.zip"
           7z a $ARCHIVE_NAME target/${{ matrix.target }}/release/lll.exe
-          echo "PKG_NAME=$ARCHIVE_NAME" >> $GITHUB_OUTPUT
+          echo "PKG_NAME=$ARCHIVE_NAME" >> $GITHUB_ENV
 
       - name: Post build | Prepare artifact [linux]
         if: matrix.os == 'ubuntu-latest'
-        id: artifact
         shell: bash
         run: |
           ARCHIVE_NAME="lll-${{ matrix.target }}.tar.xz"
           tar -cJvf $ARCHIVE_NAME --directory=target/${{ matrix.target }}/release lll
-          echo "PKG_NAME=$ARCHIVE_NAME" >> $GITHUB_OUTPUT
+          echo "PKG_NAME=$ARCHIVE_NAME" >> $GITHUB_ENV
 
       - name: Release | Upload a artifact
         uses: actions/upload-artifact@v3.1.2
         with:
-          name: ${{ steps.artifact.outputs.PKG_NAME }}
-          path: ${{ steps.artifact.outputs.PKG_NAME }}
+          name: ${{ env.PKG_NAME }}
+          path: ${{ env.PKG_NAME }}
 
       - name: Release | Release new version if new tag is pushed
         uses: softprops/action-gh-release@v1
