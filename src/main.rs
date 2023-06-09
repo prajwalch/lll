@@ -9,6 +9,8 @@ use std::io::Error as IoError;
 use std::path::PathBuf;
 use std::str::FromStr;
 
+use getopts::Options;
+
 use crate::mime_types::MimeTypes;
 use crate::urls_table::{EntryCache, UrlsTable};
 
@@ -17,24 +19,36 @@ use tiny_http::{Header, Request, Response, Server};
 const DEFAULT_PORT: u16 = 2058;
 
 fn main() {
-    let path = env::args().nth(1).map_or(
-        env::current_dir().unwrap_or(PathBuf::from(".")),
-        PathBuf::from,
-    );
+    let mut opts = Options::new();
+    opts.optopt("d", "dir", "directory to serve (default: current)", "PATH");
+    opts.optopt("p", "port", "Port to bind (default: 2058)", "PORT_NUM");
+    opts.optflag("h", "help", "Display help and exit");
+
+    let args = match opts.parse(env::args().skip(1)) {
+        Ok(m) => m,
+        Err(e) => {
+            eprintln!("{e}");
+            return;
+        }
+    };
+
+    if args.opt_present("help") {
+        println!("{}", opts.usage("Usage: lll [options]"));
+        return;
+    }
+    let current_dir = env::current_dir().unwrap_or(PathBuf::from("."));
+    let path = args.opt_get_default("dir", current_dir).unwrap();
     let path = path.canonicalize().unwrap_or(path);
 
     if !path.is_dir() {
         eprintln!("Please provide a directory to serve");
         return;
     }
+    let Ok(port) = args.opt_get_default("port", DEFAULT_PORT) else {
+        eprintln!("error: Given port is not valid");
+        return;
+    };
     println!("Serving {path:?} directory");
-
-    let port: u16 = env::var_os("LLL_PORT").map_or(DEFAULT_PORT, |given_port| {
-        given_port.to_string_lossy().parse().unwrap_or_else(|_| {
-            eprintln!("Invalid port {given_port:?}, falling back to default `{DEFAULT_PORT}`",);
-            DEFAULT_PORT
-        })
-    });
 
     if let Err(e) = start_server(port, path) {
         eprintln!("Internal error: {e}");
