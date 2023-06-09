@@ -4,6 +4,17 @@
 
 lll is a simple local http server for serving files quickly.
 
+## Usage
+
+```bash
+Usage: lll [options]
+
+Options:
+    -d, --dir PATH      directory to serve (default: current)
+    -p, --port PORT_NUM Port to bind (default: 2058)
+    -h, --help          Display help and exit
+```
+
 ## Building and running
 
 Make sure you installed and setup the [rust toolchain](https://www.rust-lang.org/tools/install) first.
@@ -12,9 +23,3 @@ Make sure you installed and setup the [rust toolchain](https://www.rust-lang.org
 2. Jump to `lll` dir
 3. Run `cargo build --release` to build it
 4. Then run `cargo run -- [path]` to start it
-
-By default, server runs on `2058` port, if you want to use different port run with `LLL_PORT` environment variable.
-
-```bash
-$ LLL_PORT=8080 cargo run -- [path]
-```
