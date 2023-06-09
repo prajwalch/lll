@@ -4,6 +4,10 @@
 
 lll is a simple local http server for serving files quickly.
 
+## Install
+
+Checkout the [releases](https://github.com/PrajwalCH/lll/releases) page for pre-built binaries.
+
 ## Usage
 
 ```bash
