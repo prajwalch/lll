@@ -116,4 +116,4 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: ${{ env.PKG_NAME }}
-          token: ${{ github.GITHUB_TOKEN }}
+          
