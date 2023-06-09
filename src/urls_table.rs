@@ -7,26 +7,75 @@ use std::time::{Duration, Instant};
 use crate::common::{FILE_SVG_ICON, FOLDER_SVG_ICON, PAGE_TEMPLATE};
 use crate::normalize_url;
 
+pub type Seconds = u64;
+
+const DEFAULT_CACHE_EXPIRATION_TIME: Duration = Duration::from_secs(60);
+
 pub struct UrlsTable {
     root_path: PathBuf,
     table: HashMap<String, UrlEntry>,
+    cache_expiration_time: Duration,
 }
 
 impl UrlsTable {
-    pub fn new(root_path: PathBuf) -> Self {
+    pub fn new(root_path: PathBuf, cache_expiration_time: Option<Seconds>) -> Self {
+        let entry_cache_expiration_time =
+            cache_expiration_time.map_or(DEFAULT_CACHE_EXPIRATION_TIME, Duration::from_secs);
+
         Self {
             root_path,
             table: HashMap::new(),
+            cache_expiration_time: entry_cache_expiration_time,
         }
     }
 
-    pub fn get_url_entry_mut(&mut self, url: &str) -> Option<&mut UrlEntry> {
-        self.update_table_if_needed(url).ok();
-        self.table.get_mut(url)
+    pub fn get_url_entry(&self, url: &str) -> Option<&UrlEntry> {
+        self.table.get(url)
     }
 
     pub fn contains_url_entry(&self, url: &str) -> bool {
         self.table.contains_key(url)
+    }
+
+    pub fn update_or_set_cache_of(&mut self, url: &str, content: Vec<u8>, content_type: String) {
+        if let Some(entry) = self.table.get_mut(url) {
+            entry.cache = Some(EntryCache::new(
+                content,
+                content_type,
+                self.cache_expiration_time,
+            ));
+        }
+    }
+
+    pub fn update_if_needed(&mut self, url: &str) -> io::Result<()> {
+        if let Some(url_entry) = self.table.get(url) {
+            if url_entry.fs_path.is_file()
+                || url_entry.cache.as_ref().is_some_and(|c| !c.is_expired())
+            {
+                return Ok(());
+            }
+            // FIXME: Clone is un-necessary here, but required to use inside `retain` function.
+            //        Figure out solution to fix this.
+            let requested_path = url_entry.fs_path.clone();
+            self.table.remove(url);
+            // To prevent displaying the deleted file or directory in listing page, remove all urls
+            // previously mapped from `requested_path` by keeping only the urls whose equivalent
+            // fs_path's parent is not `requested_path`.
+            self.table
+                .retain(|_, entry| entry.fs_path.parent().map_or(true, |p| p != requested_path));
+
+            return self.map_urls_from(&requested_path);
+        }
+        let url_fs_path = self.url_to_fs_path(url);
+
+        if !url_fs_path.exists() {
+            return Err(Error::from(ErrorKind::NotFound));
+        }
+        if url_fs_path.is_file() && url_fs_path.parent().is_some_and(|p| p != self.root_path) {
+            self.map_urls_from(url_fs_path.parent().unwrap())
+        } else {
+            self.map_urls_from(&url_fs_path)
+        }
     }
 
     fn map_urls_from(&mut self, path: &Path) -> io::Result<()> {
@@ -47,6 +96,7 @@ impl UrlsTable {
         let entry_cache = EntryCache::new(
             self.build_directory_listing_page(&mapped_root_url, path),
             String::from("Content-Type: text/html"),
+            self.cache_expiration_time,
         );
         self.table.insert(
             mapped_root_url,
@@ -107,37 +157,6 @@ impl UrlsTable {
             .into_bytes()
     }
 
-    fn update_table_if_needed(&mut self, url: &str) -> io::Result<()> {
-        if let Some(url_entry) = self.table.get(url) {
-            if url_entry.fs_path.is_file()
-                || url_entry.cache.as_ref().is_some_and(|c| !c.is_expired())
-            {
-                return Ok(());
-            }
-            // FIXME: Clone is un-necessary here, but required to use inside `retain` function.
-            //        Figure out solution to fix this.
-            let requested_path = url_entry.fs_path.clone();
-            self.table.remove(url);
-            // To prevent displaying the deleted file or directory in listing page, remove all urls
-            // previously mapped from `requested_path` by keeping only the urls whose equivalent
-            // fs_path's parent is not `requested_path`.
-            self.table
-                .retain(|_, entry| entry.fs_path.parent().map_or(true, |p| p != requested_path));
-
-            return self.map_urls_from(&requested_path);
-        }
-        let url_fs_path = self.url_to_fs_path(url);
-
-        if !url_fs_path.exists() {
-            return Err(Error::from(ErrorKind::NotFound));
-        }
-        if url_fs_path.is_file() && url_fs_path.parent().is_some_and(|p| p != self.root_path) {
-            self.map_urls_from(url_fs_path.parent().unwrap())
-        } else {
-            self.map_urls_from(&url_fs_path)
-        }
-    }
-
     fn url_to_fs_path(&self, url: &str) -> PathBuf {
         if let Some(url_entry) = self.table.get(url) {
             return url_entry.fs_path.clone();
@@ -160,24 +179,23 @@ impl UrlEntry {
 
 #[derive(Debug, Clone)]
 pub struct EntryCache {
-    created_time: Instant,
     pub content: Vec<u8>,
     pub content_type: String,
+    created_time: Instant,
+    expiration_time: Duration,
 }
 
 impl EntryCache {
-    pub fn new(content: Vec<u8>, content_type: String) -> Self {
+    pub fn new(content: Vec<u8>, content_type: String, expiration_time: Duration) -> Self {
         Self {
-            created_time: Instant::now(),
             content,
             content_type,
+            created_time: Instant::now(),
+            expiration_time,
         }
     }
 
     pub fn is_expired(&self) -> bool {
-        // TODO: Change it to actual two minutes (i.e 102 seconds)
-        //       when cache handling is fixed for directory listing page
-        let two_min = Duration::from_secs(10);
-        self.created_time.elapsed() >= two_min
+        self.created_time.elapsed() >= self.expiration_time
     }
 }

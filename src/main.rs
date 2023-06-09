@@ -12,7 +12,7 @@ use std::str::FromStr;
 use getopts::Options;
 
 use crate::mime_types::MimeTypes;
-use crate::urls_table::{EntryCache, UrlsTable};
+use crate::urls_table::{Seconds, UrlsTable};
 
 use tiny_http::{Header, Request, Response, Server};
 
@@ -22,6 +22,12 @@ fn main() {
     let mut opts = Options::new();
     opts.optopt("d", "dir", "directory to serve (default: current)", "PATH");
     opts.optopt("p", "port", "Port to bind (default: 2058)", "PORT_NUM");
+    opts.optopt(
+        "t",
+        "cache-exp-time",
+        "cache expiration time in seconds (default: 60)",
+        "SECS",
+    );
     opts.optflag("h", "help", "Display help and exit");
 
     let args = match opts.parse(env::args().skip(1)) {
@@ -44,13 +50,22 @@ fn main() {
         eprintln!("Please provide a directory to serve");
         return;
     }
+
     let Ok(port) = args.opt_get_default("port", DEFAULT_PORT) else {
         eprintln!("error: Given port is not valid");
         return;
     };
+
+    let Ok(cache_expiration_time) = args.opt_get::<Seconds>("cache-exp-time") else {
+        eprintln!("Error: Given Maximum cache expiration time is not valid");
+        return;
+    };
     println!("Serving {path:?} directory");
 
-    if let Err(e) = start_server(port, path) {
+    let mut urls_table = UrlsTable::new(path, cache_expiration_time);
+    let mime_types = MimeTypes::new();
+
+    if let Err(e) = start_server(port, &mut urls_table, &mime_types) {
         eprintln!("Internal error: {e}");
 
         #[cfg(debug_assertions)]
@@ -62,16 +77,14 @@ fn main() {
 
 fn start_server(
     port: u16,
-    root_path: PathBuf,
+    urls_table: &mut UrlsTable,
+    mime_types: &MimeTypes,
 ) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
     let server = Server::http(("127.0.0.1", port))?;
     println!("Listening at `http://{}`", server.server_addr());
 
-    let mut urls_table = UrlsTable::new(root_path);
-    let mime_types = MimeTypes::new();
-
     for request in server.incoming_requests() {
-        handle_request(request, &mut urls_table, &mime_types)?;
+        handle_request(request, urls_table, mime_types)?;
     }
     Ok(())
 }
@@ -84,7 +97,9 @@ fn handle_request(
     println!("{:?}: {}", request.method(), request.url());
 
     let mut requested_url = normalize_url(request.url());
-    let url_entry = match urls_table.get_url_entry_mut(&requested_url) {
+    urls_table.update_if_needed(&requested_url).ok();
+
+    let url_entry = match urls_table.get_url_entry(&requested_url) {
         Some(entry) => entry,
         None => {
             let response = Response::from_string(common::build_not_found_page())
@@ -123,9 +138,7 @@ fn handle_request(
     request.respond(
         Response::from_data(content.clone()).with_header(Header::from_str(&content_type).unwrap()),
     )?;
-
-    // Update or set cache
-    url_entry.cache = Some(EntryCache::new(content, content_type));
+    urls_table.update_or_set_cache_of(&requested_url, content, content_type);
     Ok(())
 }
 
