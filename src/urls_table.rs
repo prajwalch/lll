@@ -79,20 +79,28 @@ impl UrlsTable {
     }
 
     fn map_urls_from(&mut self, path: &Path) -> io::Result<()> {
+        let mut found_index_html_file = false;
+
         for dir_entry in path.read_dir()? {
             let entry_fs_path = dir_entry?.path();
+
+            if !found_index_html_file
+                && entry_fs_path.file_name().is_some_and(|f| f == "index.html")
+            {
+                found_index_html_file = true;
+            }
             let mapped_url = self.fs_path_to_url(&entry_fs_path);
 
             self.table
                 .entry(mapped_url)
                 .or_insert(UrlEntry::new(entry_fs_path, None));
         }
-        let mapped_root_url = self.fs_path_to_url(path);
 
-        if self.table.contains_key(&mapped_root_url) {
+        if found_index_html_file {
             return Ok(());
         }
         // If path not contains `index.html` file build a directory listing page for it
+        let mapped_root_url = self.fs_path_to_url(path);
         let entry_cache = EntryCache::new(
             self.build_directory_listing_page(&mapped_root_url, path),
             String::from("Content-Type: text/html"),
