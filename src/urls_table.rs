@@ -19,13 +19,13 @@ pub struct UrlsTable {
 
 impl UrlsTable {
     pub fn new(root_path: PathBuf, cache_expiration_time: Option<Seconds>) -> Self {
-        let entry_cache_expiration_time =
+        let cache_expiration_time =
             cache_expiration_time.map_or(DEFAULT_CACHE_EXPIRATION_TIME, Duration::from_secs);
 
         Self {
             root_path,
             table: HashMap::new(),
-            cache_expiration_time: entry_cache_expiration_time,
+            cache_expiration_time,
         }
     }
 
