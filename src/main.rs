@@ -95,31 +95,34 @@ fn handle_request(
     mime_types: &MimeTypes,
 ) -> Result<(), IoError> {
     println!("{:?}: {}", request.method(), request.url());
+    let mut normalized_url = normalize_url(request.url());
 
-    let mut requested_url = normalize_url(request.url());
-    urls_table.update_if_needed(&requested_url).ok();
+    // When a user request with the url like `/std///index.html`, the browser requests the resources
+    // in same manner which makes the resource not being found.
+    if normalized_url != request.url() {
+        return redirect(request, &normalized_url);
+    }
+    urls_table.update_if_needed(&normalized_url).ok();
 
-    let url_entry = match urls_table.get_url_entry(&requested_url) {
+    let url_entry = match urls_table.get_url_entry(&normalized_url) {
         Some(entry) => entry,
         None => {
-            let response = Response::from_string(common::build_not_found_page())
-                .with_header(Header::from_str(&mime_types.get_content_type("html")).unwrap());
-
             // Put a trailing slash to url if not present and response `301 Moved Permanently`
             // if we have a url entry associated with that url
             //
             // (see: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/301)
-            if !requested_url.ends_with('/') {
-                requested_url.push('/');
+            if !normalized_url.ends_with('/') {
+                normalized_url.push('/');
 
-                if urls_table.contains_url_entry(&requested_url) {
-                    let response = response
-                        .with_header(Header::from_bytes("Location", requested_url).unwrap())
-                        .with_status_code(301);
-                    return request.respond(response);
+                if urls_table.contains_url_entry(&normalized_url) {
+                    return redirect(request, &normalized_url);
                 }
             }
-            return request.respond(response.with_status_code(404));
+            let response = Response::from_string(common::build_not_found_page())
+                .with_header(Header::from_str(&mime_types.get_content_type("html")).unwrap())
+                .with_status_code(404);
+
+            return request.respond(response);
         }
     };
 
@@ -138,7 +141,7 @@ fn handle_request(
     request.respond(
         Response::from_data(content.clone()).with_header(Header::from_str(&content_type).unwrap()),
     )?;
-    urls_table.update_or_set_cache_of(&requested_url, content, content_type);
+    urls_table.update_or_set_cache_of(&normalized_url, content, content_type);
     Ok(())
 }
 
@@ -155,4 +158,8 @@ fn normalize_url(url: &str) -> String {
         *component != "/" && *component != "index.html" && !component.starts_with('?')
     }));
     normalized_url
+}
+
+fn redirect(request: Request, url: &str) -> Result<(), IoError> {
+    request.respond(Response::empty(301).with_header(Header::from_bytes("Location", url).unwrap()))
 }
