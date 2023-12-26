@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt::Write;
 use std::io;
 use std::io::{Error, ErrorKind};
 use std::path::{Path, PathBuf};
@@ -139,38 +140,36 @@ impl UrlsTable {
         url
     }
 
-    fn build_directory_listing_page(&self, url: &str, dir_path: &Path) -> Vec<u8> {
-        let mut matched_entries = self
+    fn build_directory_listing_page(&self, url: &str, fs_path: &Path) -> Vec<u8> {
+        let mut entries = self
             .table
             .iter()
-            .filter(|(_, url_entry)| url_entry.fs_path.parent().is_some_and(|p| p == dir_path))
+            .filter(|(_, entry)| entry.fs_path.parent().is_some_and(|p| p == fs_path))
             .collect::<Vec<(&String, &UrlEntry)>>();
 
-        // Sort the entries so that directories shows first and then files
-        matched_entries.sort_by_cached_key(|(_, url_entry)| url_entry.fs_path.is_file());
+        // Sort the entries so that the directories shows up first and then files.
+        entries.sort_by_key(|(_, url_entry)| url_entry.fs_path.is_file());
 
-        let entries_hyperlinks = matched_entries
+        let links = entries
             .iter()
-            .map(|(mapped_url, url_entry)| {
-                let icon = if url_entry.fs_path.is_dir() {
+            .fold(String::new(), |mut output, (url, entry)| {
+                let icon = if entry.fs_path.is_dir() {
                     FOLDER_SVG_ICON
                 } else {
                     FILE_SVG_ICON
                 };
 
-                let basename = url_entry
+                let basename = entry
                     .fs_path
                     .file_name()
-                    .unwrap_or(url_entry.fs_path.as_ref())
+                    .unwrap_or(entry.fs_path.as_ref())
                     .to_string_lossy();
 
-                format!(r#"<li><a href="{mapped_url}">{icon} {basename}</a></li>"#)
-            })
-            .collect::<String>();
-
-        let mut content = format!("<h1>Directory Listing for {url}</h1><ul>");
-        content.push_str(&entries_hyperlinks);
-        content.push_str("</ul>");
+                // NOTE: Unwrapping is completely safe here.
+                write!(output, r#"<li><a href="{url}">{icon} {basename}</a></li>"#).unwrap();
+                output
+            });
+        let content = format!("<h1>Directory Listing for {url}</h1>\n<ul>{links}</ul>");
 
         PAGE_TEMPLATE
             .replace("{title}", "Directory Listing")
