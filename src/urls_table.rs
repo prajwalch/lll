@@ -115,12 +115,18 @@ impl UrlsTable {
 
     fn fs_path_to_url(&self, fs_path: &Path) -> String {
         if fs_path == self.root_path {
+            // If path is a root then return early.
             return String::from("/");
         }
-        let child_path = fs_path.strip_prefix(&self.root_path).unwrap_or(fs_path);
-        let mut url = normalize_url(&child_path.to_string_lossy());
-        // Add a trailing slash `/` at the end of url for directory
-        if child_path.is_dir() {
+        // 1) Remove root from the path.
+        //
+        // Eg: root = /home/x/one
+        //     /home/x/one/main.rs -> /main.rs
+        let relative_path = fs_path.strip_prefix(&self.root_path).unwrap_or(fs_path);
+        // 2) Convert it to string and normalize it.
+        let mut url = normalize_url(&relative_path.to_string_lossy());
+        // 3) Add trailing `/` if path points to a dir on disk.
+        if fs_path.is_dir() {
             url.push('/');
         }
         url
