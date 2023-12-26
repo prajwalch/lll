@@ -49,32 +49,39 @@ impl UrlsTable {
 
     pub fn update_if_needed(&mut self, url: &str) -> io::Result<()> {
         if let Some(url_entry) = self.table.get(url) {
-            if url_entry.fs_path.is_file()
-                || url_entry.cache.as_ref().is_some_and(|c| !c.is_expired())
-            {
+            if url_entry.fs_path.is_file() {
+                // Url points to a existing file on disk. Nothing to do.
                 return Ok(());
             }
-            // FIXME: Clone is un-necessary here, but required to use inside `retain` function.
-            //        Figure out solution to fix this.
-            let requested_path = url_entry.fs_path.clone();
+            // Url points to a directory on disk.
+            let dir = url_entry.fs_path.clone();
+
+            // 1) Remove this url.
             self.table.remove(url);
-            // To prevent displaying the deleted file or directory in listing page, remove all urls
-            // previously mapped from `requested_path` by keeping only the urls whose equivalent
-            // fs_path's parent is not `requested_path`.
+            // 2) Remove all sub url as well.
+            //
+            // Eg: url -> /one (remove this too)
+            //     remove all `/one/*`
+            //
+            // Note: This is important to prevent from keeping url that points
+            //       to a file or directory that no longer exists on disk.
             self.table
-                .retain(|_, entry| entry.fs_path.parent().map_or(true, |p| p != requested_path));
-
-            return self.map_urls_from(&requested_path);
+                .retain(|_, entry| entry.fs_path.parent().is_some_and(|p| p != dir));
+            // 3) Remap everything.
+            return self.map_urls_from(&dir);
         }
-        let url_fs_path = self.url_to_fs_path(url);
+        // Url doesn't have any entry in the table. Construct disk path first.
+        let fs_path = self.root_path.join(url.trim_start_matches('/'));
 
-        if !url_fs_path.exists() {
-            return Err(Error::from(ErrorKind::NotFound));
-        }
-        if url_fs_path.is_file() && url_fs_path.parent().is_some_and(|p| p != self.root_path) {
-            self.map_urls_from(url_fs_path.parent().unwrap())
+        if fs_path.is_file() {
+            // If path points to a file then map urls from its parent (dir).
+            self.map_urls_from(fs_path.parent().unwrap())
+        } else if fs_path.is_dir() {
+            // If path points to a dir then map urls from it.
+            self.map_urls_from(&fs_path)
         } else {
-            self.map_urls_from(&url_fs_path)
+            // Path doesn't exist on disk or its broken.
+            Err(Error::from(ErrorKind::NotFound))
         }
     }
 
@@ -169,13 +176,6 @@ impl UrlsTable {
             .replace("{title}", "Directory Listing")
             .replace("{content}", &content)
             .into_bytes()
-    }
-
-    fn url_to_fs_path(&self, url: &str) -> PathBuf {
-        if let Some(url_entry) = self.table.get(url) {
-            return url_entry.fs_path.clone();
-        }
-        self.root_path.join(url.trim_start_matches('/'))
     }
 }
 
