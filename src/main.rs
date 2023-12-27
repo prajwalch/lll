@@ -1,22 +1,113 @@
 mod common;
 mod mime_types;
-mod urls_table;
 
-use std::env;
 use std::error::Error;
-use std::fs;
-use std::io::Error as IoError;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
-
-use getopts::Options;
+use std::{env, fs, io};
 
 use crate::mime_types::MimeTypes;
-use crate::urls_table::{Seconds, UrlsTable};
 
+use getopts::Options;
 use tiny_http::{Header, Request, Response, Server};
 
 const DEFAULT_PORT: u16 = 2058;
+
+struct LServer {
+    root: PathBuf,
+    port: u16,
+    mime: MimeTypes,
+    cache_age: u64,
+}
+
+impl LServer {
+    pub fn new(root: PathBuf, port: u16, cache_age: u64) -> LServer {
+        LServer {
+            root,
+            port,
+            mime: MimeTypes::new(),
+            cache_age,
+        }
+    }
+
+    pub fn start(&self) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
+        let server = Server::http(("127.0.0.1", self.port))?;
+        println!("Listening at `http://{}`", server.server_addr());
+
+        for request in server.incoming_requests() {
+            self.handle_request(request)?;
+        }
+        Ok(())
+    }
+
+    fn handle_request(&self, req: Request) -> io::Result<()> {
+        println!("{:?}: {}", req.method(), req.url());
+        let url = normalize_url(req.url());
+
+        if url != req.url() {
+            // If normalized url is not the same as requested url then redirect
+            // to it first.
+            return self.redirect(req, &url);
+        }
+        // Convert url to fs path.
+        let mut path = self.root.join(url.trim_start_matches('/'));
+
+        if !path.exists() {
+            return self.respond_html(req, common::build_not_found_page(), 404);
+        } else if path.is_dir() {
+            // Extend path with index page and check if exists.
+            //
+            // Eg: /home/x/one -> /home/x/one/index.html.
+            path.push("index.html");
+
+            if !path.exists() {
+                // Index page doesn't exists. Truncate path back to directory.
+                //
+                // Eg: /home/x/one/index.html -> /home/x/one.
+                path.pop();
+                // Generate listing page and respond that.
+                return self.respond_html(
+                    req,
+                    common::build_directory_listing_page(&url, &self.root, &path)?,
+                    200,
+                );
+            }
+            // If index page exists then following code will handle the rest.
+        }
+        self.respond_file(req, &path)
+    }
+
+    fn redirect(&self, request: Request, url: &str) -> io::Result<()> {
+        request
+            .respond(Response::empty(301).with_header(Header::from_bytes("Location", url).unwrap()))
+    }
+
+    fn respond_html(&self, req: Request, data: String, status: u32) -> io::Result<()> {
+        let content_type = self.mime.get_content_type("html");
+        let cache_control = format!("Cache-Control: max-age={}", self.cache_age);
+
+        let res = Response::from_string(data)
+            .with_status_code(status)
+            .with_header(Header::from_str(&content_type).unwrap())
+            .with_header(Header::from_str(&cache_control).unwrap());
+
+        req.respond(res)
+    }
+
+    fn respond_file(&self, req: Request, path: &Path) -> io::Result<()> {
+        assert!(path.is_file());
+
+        let content = fs::read(path)?;
+        let content_type = self.mime.get_content_type(path.extension().unwrap());
+        let cache_control = format!("Cache-Control: max-age={}", self.cache_age);
+
+        let res = Response::from_data(content)
+            .with_header(Header::from_str(&content_type).unwrap())
+            .with_header(Header::from_str(&cache_control).unwrap());
+
+        req.respond(res)
+    }
+}
 
 fn main() {
     let mut opts = Options::new();
@@ -56,16 +147,15 @@ fn main() {
         return;
     };
 
-    let Ok(cache_expiration_time) = args.opt_get::<Seconds>("cache-exp-time") else {
+    let Ok(cache_expiration_time) = args.opt_get_default("cache-exp-time", 60) else {
         eprintln!("Error: Given Maximum cache expiration time is not valid");
         return;
     };
     println!("Serving {path:?} directory");
 
-    let mut urls_table = UrlsTable::new(path, cache_expiration_time);
-    let mime_types = MimeTypes::new();
+    let lserver = LServer::new(path, port, cache_expiration_time);
 
-    if let Err(e) = start_server(port, &mut urls_table, &mime_types) {
+    if let Err(e) = lserver.start() {
         eprintln!("Internal error: {e}");
 
         #[cfg(debug_assertions)]
@@ -73,76 +163,6 @@ fn main() {
             dbg!(source);
         }
     }
-}
-
-fn start_server(
-    port: u16,
-    urls_table: &mut UrlsTable,
-    mime_types: &MimeTypes,
-) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
-    let server = Server::http(("127.0.0.1", port))?;
-    println!("Listening at `http://{}`", server.server_addr());
-
-    for request in server.incoming_requests() {
-        handle_request(request, urls_table, mime_types)?;
-    }
-    Ok(())
-}
-
-fn handle_request(
-    request: Request,
-    urls_table: &mut UrlsTable,
-    mime_types: &MimeTypes,
-) -> Result<(), IoError> {
-    println!("{:?}: {}", request.method(), request.url());
-    let mut normalized_url = normalize_url(request.url());
-
-    // When a user request with the url like `/std///index.html`, the browser requests the resources
-    // in same manner which makes the resource not being found.
-    if normalized_url != request.url() {
-        return redirect(request, &normalized_url);
-    }
-    urls_table.update_if_needed(&normalized_url).ok();
-
-    let url_entry = match urls_table.get_url_entry(&normalized_url) {
-        Some(entry) => entry,
-        None => {
-            // Put a trailing slash to url if not present and response `301 Moved Permanently`
-            // if we have a url entry associated with that url
-            //
-            // (see: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/301)
-            if !normalized_url.ends_with('/') {
-                normalized_url.push('/');
-
-                if urls_table.contains_url_entry(&normalized_url) {
-                    return redirect(request, &normalized_url);
-                }
-            }
-            let response = Response::from_string(common::build_not_found_page())
-                .with_header(Header::from_str(&mime_types.get_content_type("html")).unwrap())
-                .with_status_code(404);
-
-            return request.respond(response);
-        }
-    };
-
-    if let Some(ref cache) = url_entry.cache {
-        if !cache.is_expired() {
-            let res = Response::from_data(cache.content.clone())
-                .with_header(Header::from_str(&cache.content_type).unwrap());
-            return request.respond(res);
-        }
-    }
-
-    let content = fs::read(&url_entry.fs_path)?;
-    let content_type =
-        mime_types.get_content_type(url_entry.fs_path.extension().unwrap_or("default".as_ref()));
-
-    request.respond(
-        Response::from_data(content.clone()).with_header(Header::from_str(&content_type).unwrap()),
-    )?;
-    urls_table.update_or_set_cache_of(&normalized_url, content, content_type);
-    Ok(())
 }
 
 fn normalize_url(url: &str) -> String {
@@ -158,8 +178,4 @@ fn normalize_url(url: &str) -> String {
         *component != "/" && *component != "index.html" && !component.starts_with('?')
     }));
     normalized_url
-}
-
-fn redirect(request: Request, url: &str) -> Result<(), IoError> {
-    request.respond(Response::empty(301).with_header(Header::from_bytes("Location", url).unwrap()))
 }
