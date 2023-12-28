@@ -168,14 +168,19 @@ fn main() {
 fn normalize_url(url: &str) -> String {
     let mut normalized_url = String::from('/');
 
-    // Split the url into many components, skip which we don't want and use the rest to make
-    // full normalized url.
+    // Split the url into many components, skip which we don't want and use the
+    // rest to make full normalized url.
     //
-    // A component roughly corresponds to a each path of url with trailing slash (/) and query parameter.
+    // A component roughly corresponds to a each path of url with trailing
+    // slash (/) and query parameter.
+    //
     // Example: /one/two/index.html     -> [/, one/, two/, index.html]
     //          /one/two/?search=hello  -> [/, one/, two/, ?search=hello]
-    normalized_url.extend(url.split_inclusive('/').filter(|component| {
-        *component != "/" && *component != "index.html" && !component.starts_with('?')
-    }));
+    let filtered_components = url
+        .split_inclusive('/')
+        .filter(|&comp| comp != "/" && comp != "index.html" && !comp.starts_with('?'))
+        .map(|comp| comp.find('?').map_or(comp, |i| &comp[..i]));
+
+    normalized_url.extend(filtered_components);
     normalized_url
 }
