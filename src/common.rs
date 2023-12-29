@@ -1,8 +1,7 @@
 use std::fmt::Write;
+use std::fs::DirEntry;
 use std::io;
 use std::path::Path;
-
-use crate::normalize_url;
 
 pub const PAGE_TEMPLATE: &str = include_str!("static/template.html");
 pub const FILE_SVG_ICON: &str = include_str!("static/file.svg");
@@ -65,7 +64,7 @@ fn fs_path_to_url(root: &Path, path: &Path) -> String {
     //     /home/x/one/main.rs -> /main.rs
     let relative_path = path.strip_prefix(root).unwrap_or(path);
     // 2) Convert it to string and normalize it.
-    let mut url = normalize_url(&relative_path.to_string_lossy());
+    let mut url = crate::normalize_url(&relative_path.to_string_lossy());
     // 3) Add trailing `/` if path points to a dir on disk.
     if path.is_dir() {
         url.push('/');
