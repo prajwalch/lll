@@ -10,5 +10,6 @@ repository = "https://github.com/PrajwalCH/lll"
 license = "MIT"
 
 [dependencies]
+anyhow = "1.0.77"
 getopts = "0.2.21"
 tiny_http = "0.12.0"

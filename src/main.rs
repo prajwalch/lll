@@ -8,6 +8,7 @@ use std::{env, fs, io};
 
 use crate::mime_types::MimeTypes;
 
+use anyhow::{bail, Context};
 use getopts::Options;
 use tiny_http::{Header, Request, Response, Server};
 
@@ -109,50 +110,42 @@ impl LServer {
     }
 }
 
-fn main() {
+fn main() -> anyhow::Result<()> {
     let mut opts = Options::new();
-    opts.optopt("d", "dir", "directory to serve (default: current)", "PATH");
-    opts.optopt("p", "port", "Port to bind (default: 2058)", "PORT_NUM");
-    opts.optopt(
-        "t",
-        "cache-exp-time",
-        "cache expiration time in seconds (default: 60)",
-        "SECS",
-    );
-    opts.optflag("h", "help", "Display help and exit");
+    opts.optopt("d", "dir", "Directory to serve (default: current)", "PATH")
+        .optopt("p", "port", "Port to bind (default: 2058)", "PORT_NUM")
+        .optopt(
+            "t",
+            "cache-exp-time",
+            "Cache expiration time in seconds (default: 60)",
+            "SECS",
+        )
+        .optflag("h", "help", "Display help and exit");
 
-    let args = match opts.parse(env::args().skip(1)) {
-        Ok(m) => m,
-        Err(e) => {
-            eprintln!("{e}");
-            return;
-        }
-    };
+    let args = opts
+        .parse(env::args().skip(1))
+        .context("Failed to parse cli args")?;
 
     if args.opt_present("help") {
         println!("{}", opts.usage("Usage: lll [options]"));
-        return;
+        return Ok(());
     }
-    let current_dir = env::current_dir().unwrap_or(PathBuf::from("."));
-    let path = args.opt_get_default("dir", current_dir).unwrap();
-    let path = path.canonicalize().unwrap_or(path);
+    let path = args
+        .opt_get_default("dir", env::current_dir().unwrap_or(PathBuf::from(".")))
+        .map(|p| p.canonicalize().unwrap_or(p))
+        .unwrap();
 
     if !path.is_dir() {
-        eprintln!("Please provide a directory to serve");
-        return;
+        bail!("Provided path is not a directoy");
     }
+    let port = args
+        .opt_get_default("port", DEFAULT_PORT)
+        .context("Invalid port number")?;
+    let cache_expiration_time = args
+        .opt_get_default("cache-exp-time", 60)
+        .context("Invalid cache expiration time")?;
 
-    let Ok(port) = args.opt_get_default("port", DEFAULT_PORT) else {
-        eprintln!("error: Given port is not valid");
-        return;
-    };
-
-    let Ok(cache_expiration_time) = args.opt_get_default("cache-exp-time", 60) else {
-        eprintln!("Error: Given Maximum cache expiration time is not valid");
-        return;
-    };
     println!("Serving {path:?} directory");
-
     let lserver = LServer::new(path, port, cache_expiration_time);
 
     if let Err(e) = lserver.start() {
@@ -163,6 +156,7 @@ fn main() {
             dbg!(source);
         }
     }
+    Ok(())
 }
 
 fn normalize_url(url: &str) -> String {
