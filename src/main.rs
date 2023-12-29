@@ -13,6 +13,7 @@ use getopts::Options;
 use tiny_http::{Header, Request, Response, Server};
 
 const DEFAULT_PORT: u16 = 2058;
+const DEFAULT_CACHE_AGE: u64 = 86400; // One day.
 
 struct LServer {
     root: PathBuf,
@@ -112,17 +113,16 @@ impl LServer {
 
 fn main() -> anyhow::Result<()> {
     let mut opts = Options::new();
-    opts.optopt("d", "dir", "Directory to serve (default: current)", "PATH")
+    let args = opts
+        .optopt("d", "dir", "Directory to serve (default: current)", "PATH")
         .optopt("p", "port", "Port to bind (default: 2058)", "PORT_NUM")
         .optopt(
             "t",
-            "cache-exp-time",
-            "Cache expiration time in seconds (default: 60)",
+            "expire-cache",
+            "Set cache expiration time in seconds [default: 86400 (1 day)]",
             "SECS",
         )
-        .optflag("h", "help", "Display help and exit");
-
-    let args = opts
+        .optflag("h", "help", "Display help and exit")
         .parse(env::args().skip(1))
         .context("Failed to parse cli args")?;
 
@@ -141,12 +141,12 @@ fn main() -> anyhow::Result<()> {
     let port = args
         .opt_get_default("port", DEFAULT_PORT)
         .context("Invalid port number")?;
-    let cache_expiration_time = args
-        .opt_get_default("cache-exp-time", 60)
+    let cache_age = args
+        .opt_get_default("expire-cache", DEFAULT_CACHE_AGE)
         .context("Invalid cache expiration time")?;
 
     println!("Serving {path:?} directory");
-    let lserver = LServer::new(path, port, cache_expiration_time);
+    let lserver = LServer::new(path, port, cache_age);
 
     if let Err(e) = lserver.start() {
         eprintln!("Internal error: {e}");
