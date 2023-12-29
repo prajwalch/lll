@@ -3,9 +3,9 @@ use std::fs::DirEntry;
 use std::io;
 use std::path::Path;
 
-pub const PAGE_TEMPLATE: &str = include_str!("static/template.html");
-pub const FILE_ICON: &str = include_str!("static/file.svg");
-pub const DIR_ICON: &str = include_str!("static/folder.svg");
+pub const PAGE_TEMPLATE: &str = include_str!("./static/template.html");
+pub const FILE_ICON: &str = include_str!("./static/file.svg");
+pub const DIR_ICON: &str = include_str!("./static/folder.svg");
 
 pub fn build_not_found_page() -> String {
     PAGE_TEMPLATE.replace("{title}", "Error Response").replace(
