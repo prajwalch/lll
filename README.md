@@ -16,7 +16,7 @@ Usage: lll [options]
 Options:
     -d, --dir PATH            Directory to serve (default: current)
     -p, --port PORT_NUM       Port to bind (default: 2058)
-    -t, --cache-exp-time SECS Cache expiration time in seconds (default: 60)
+    -t, --expire-cache SECS   Set cache expiration time in seconds [default: 86400 (1 day)]
     -h, --help                Display help and exit
 ```
 
