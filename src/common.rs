@@ -28,28 +28,29 @@ pub fn build_directory_listing_page(url: &str, root: &Path, path: &Path) -> io::
 }
 
 fn create_entry_hyperlinks(root: &Path, path: &Path) -> io::Result<String> {
-    path.read_dir()?
-        .try_fold(String::new(), |mut output, entry| {
-            // Return error if we can't access the entry.
-            let entry = entry?;
-            let path = entry.path();
+    let mut entries: Vec<DirEntry> = path.read_dir()?.flatten().collect();
+    // Sort the entries so that the directories shows up first and then files.
+    entries.sort_by_cached_key(|entry| entry.path().is_file());
 
-            let icon = if path.is_dir() {
-                FOLDER_SVG_ICON
-            } else {
-                FILE_SVG_ICON
-            };
+    entries.iter().try_fold(String::new(), |mut output, entry| {
+        let path = entry.path();
 
-            // NOTE: Unwrapping is completely safe here.
-            writeln!(
-                output,
-                "<li><a href=\"{}\">{icon} {}</a></li>",
-                fs_path_to_url(root, &path),
-                entry.file_name().to_string_lossy()
-            )
-            .unwrap();
-            Ok(output)
-        })
+        let icon = if path.is_dir() {
+            FOLDER_SVG_ICON
+        } else {
+            FILE_SVG_ICON
+        };
+
+        // NOTE: Unwrapping is completely safe here.
+        writeln!(
+            output,
+            "<li><a href=\"{}\">{icon} {}</a></li>",
+            fs_path_to_url(root, &path),
+            entry.file_name().to_string_lossy()
+        )
+        .unwrap();
+        Ok(output)
+    })
 }
 
 fn fs_path_to_url(root: &Path, path: &Path) -> String {
