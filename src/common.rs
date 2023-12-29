@@ -15,9 +15,6 @@ pub fn build_not_found_page() -> String {
 }
 
 pub fn build_directory_listing_page(url: &str, root: &Path, path: &Path) -> io::Result<String> {
-    // Sort the entries so that the directories shows up first and then files.
-    // entries.sort_by_key(|(_, url_entry)| url_entry.fs_path.is_file());
-
     let links = create_entry_hyperlinks(root, path)?;
     let content = format!("<h1>Directory Listing for {url}</h1>\n<ul>{links}</ul>");
 
