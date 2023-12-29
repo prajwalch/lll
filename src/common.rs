@@ -33,16 +33,17 @@ fn create_entry_hyperlinks(root: &Path, path: &Path) -> io::Result<String> {
 
     entries.iter().try_fold(String::new(), |mut output, entry| {
         let path = entry.path();
+        // Convert path to a url path.
+        let link = fs_path_to_url(root, &path);
+        // Use icon to represent whether path is a dir or file.
         let icon = if path.is_dir() { DIR_ICON } else { FILE_ICON };
+        // We can directly print it but it adds `"` as prefix and suffix.
+        let text = entry.file_name();
+        // Convert to a lossy string so that we can print.
+        let text = text.to_string_lossy();
 
         // NOTE: Unwrapping is completely safe here.
-        writeln!(
-            output,
-            "<li><a href=\"{}\">{icon} {}</a></li>",
-            fs_path_to_url(root, &path),
-            entry.file_name().to_string_lossy()
-        )
-        .unwrap();
+        writeln!(output, "<li><a href=\"{link}\">{icon} {text}</a></li>",).unwrap();
         Ok(output)
     })
 }
