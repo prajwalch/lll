@@ -4,8 +4,8 @@ use std::io;
 use std::path::Path;
 
 pub const PAGE_TEMPLATE: &str = include_str!("static/template.html");
-pub const FILE_SVG_ICON: &str = include_str!("static/file.svg");
-pub const FOLDER_SVG_ICON: &str = include_str!("static/folder.svg");
+pub const FILE_ICON: &str = include_str!("static/file.svg");
+pub const DIR_ICON: &str = include_str!("static/folder.svg");
 
 pub fn build_not_found_page() -> String {
     PAGE_TEMPLATE.replace("{title}", "Error Response").replace(
@@ -33,12 +33,7 @@ fn create_entry_hyperlinks(root: &Path, path: &Path) -> io::Result<String> {
 
     entries.iter().try_fold(String::new(), |mut output, entry| {
         let path = entry.path();
-
-        let icon = if path.is_dir() {
-            FOLDER_SVG_ICON
-        } else {
-            FILE_SVG_ICON
-        };
+        let icon = if path.is_dir() { DIR_ICON } else { FILE_ICON };
 
         // NOTE: Unwrapping is completely safe here.
         writeln!(
