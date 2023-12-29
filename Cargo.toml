@@ -1,6 +1,6 @@
 [package]
 name = "lll"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Prajwal Chapagain <prajwal.chapagain58@gmail.com>"]
 edition = "2021"
 description = "A simple local http server for serving files quickly!!"
